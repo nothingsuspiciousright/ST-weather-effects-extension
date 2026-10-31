@@ -22,7 +22,7 @@ jQuery(() => {
         <div id="rain-container" class="st-weather-layer"></div>
         <div id="petals-container" class="st-weather-layer"></div>
         <div id="leaves-container" class="st-weather-layer"></div>
-        <canvas id="fog-canvas" class="st-weather-layer"></canvas>
+        <div id="fog-container" class="st-weather-layer"></div>
         <canvas id="rays-canvas" class="st-weather-layer"></canvas>
     `;
 
@@ -129,14 +129,11 @@ jQuery(() => {
         updateLayerMode();
     });
 
-    // ================= ДЫМНЫЙ ТУМАН БЕЗ ШВОВ (ОПТИМИЗИРОВАННЫЙ) =================
-    const fogCanvas = document.getElementById('fog-canvas');
-    const fogCtx = fogCanvas.getContext('2d');
-    let fogAnimationId = null;
-    let smokeSprites = null; // Создаём лениво только когда реально включили туман!
-    let smokeClouds = [];
+    // ================= ДЫМНЫЙ ТУМАН НА GPU (НЕ ЗАМИРАЕТ ПРИ ФРИЗАХ ТАВЕРНЫ!) =================
+    const fogContainer = document.getElementById('fog-container');
+    let smokeDataUrls = null;
 
-    function createSmokeSprite(size, seed) {
+    function createSmokeSpriteDataUrl(size, seed) {
         const off = document.createElement('canvas');
         off.width = size;
         off.height = size;
@@ -200,151 +197,53 @@ jQuery(() => {
         }
 
         ctx.putImageData(img, 0, 0);
-        return off;
-    }
-
-    function ensureSmokeReady() {
-        if (!smokeSprites) {
-            // Размер 128x128 считается в 4 раза быстрее, а для мягкого дыма выглядит идентично!
-            smokeSprites = [
-                createSmokeSprite(128, 12.3),
-                createSmokeSprite(128, 45.8),
-                createSmokeSprite(128, 78.1),
-                createSmokeSprite(128, 109.4)
-            ];
-        }
-        if (smokeClouds.length === 0) {
-            initSmokeClouds();
-        }
-    }
-
-    class SmokeCloud {
-        constructor() {
-            this.sprite = smokeSprites[Math.floor(Math.random() * smokeSprites.length)];
-            this.w = window.innerWidth * (0.45 + Math.random() * 0.45);
-            this.h = window.innerHeight * (0.35 + Math.random() * 0.40);
-            this.x = Math.random() * (window.innerWidth + this.w) - this.w * 0.5;
-            this.y = window.innerHeight * (0.25 + Math.random() * 0.65) - this.h * 0.5;
-            this.vx = -(0.12 + Math.random() * 0.22);
-            this.opacity = 0.22 + Math.random() * 0.22;
-        }
-        update() {
-            this.x += this.vx;
-            if (this.x + this.w < -50) {
-                this.x = fogCanvas.width + 50;
-                this.y = fogCanvas.height * (0.25 + Math.random() * 0.65) - this.h * 0.5;
-            }
-        }
-        draw() {
-            fogCtx.save();
-            fogCtx.globalAlpha = this.opacity;
-            fogCtx.drawImage(this.sprite, this.x, this.y, this.w, this.h);
-            fogCtx.restore();
-        }
-    }
-
-    function initSmokeClouds() {
-        if (!smokeSprites) return;
-        smokeClouds = [];
-        for (let i = 0; i < 15; i++) {
-            smokeClouds.push(new SmokeCloud());
-        }
-    }
-
-    function loopFog() {
-        fogCtx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
-        for (let i = 0; i < smokeClouds.length; i++) {
-            smokeClouds[i].update();
-            smokeClouds[i].draw();
-        }
-        fogAnimationId = requestAnimationFrame(loopFog);
+        return off.toDataURL('image/png');
     }
 
     $('#btn-fog').on('click', function() {
         fogActive = !fogActive;
         $(this).toggleClass('active-weather', fogActive);
+        fogContainer.style.visibility = fogActive ? 'visible' : 'hidden';
+
         if (fogActive) {
-            fogCanvas.style.visibility = 'visible';
             requestAnimationFrame(() => {
-                ensureSmokeReady();
-                if (!fogAnimationId) loopFog();
+                if (!smokeDataUrls) {
+                    smokeDataUrls = [
+                        createSmokeSpriteDataUrl(128, 12.3),
+                        createSmokeSpriteDataUrl(128, 45.8),
+                        createSmokeSpriteDataUrl(128, 78.1),
+                        createSmokeSpriteDataUrl(128, 109.4)
+                    ];
+                }
+                const fragment = document.createDocumentFragment();
+                const totalPuffs = 16;
+                for (let i = 0; i < totalPuffs; i++) {
+                    const puff = document.createElement('div');
+                    puff.className = 'st-smoke-puff';
+                    const spriteUrl = smokeDataUrls[i % smokeDataUrls.length];
+
+                    // Ширина < 100vw, поэтому тема ST никогда не обрежет блок и не создаст шов!
+                    const w = 55 + Math.random() * 35; // 55vw..90vw
+                    const h = 40 + Math.random() * 40; // 40vh..80vh
+                    const y = 10 + Math.random() * 65; // 10vh..75vh
+                    const duration = 55 + Math.random() * 45; // Очень медленное течение (55..100 сек)
+                    const delay = -(Math.random() * duration); // Сразу распределены по всему экрану
+                    const opacity = 0.24 + Math.random() * 0.22;
+
+                    puff.style.width = `${w}vw`;
+                    puff.style.height = `${h}vh`;
+                    puff.style.setProperty('--smoke-y', `${y}vh`);
+                    puff.style.backgroundImage = `url("${spriteUrl}")`;
+                    puff.style.opacity = opacity;
+                    puff.style.animationDuration = `${duration}s`;
+                    puff.style.animationDelay = `${delay}s`;
+
+                    fragment.appendChild(puff);
+                }
+                fogContainer.appendChild(fragment);
             });
         } else {
-            cancelAnimationFrame(fogAnimationId);
-            fogAnimationId = null;
-            fogCanvas.style.visibility = 'hidden';
-        }
-    });
-
-    // ================= СВЕТЛЯЧКИ =================
-    const firefliesCanvas = document.getElementById('fireflies-effect');
-    const fCtx = firefliesCanvas.getContext('2d');
-    const fireflies = [];
-    let firefliesAnimationId = null;
-
-    class Firefly {
-        constructor() {
-            this.x = Math.random() * firefliesCanvas.width;
-            this.y = Math.random() * firefliesCanvas.height;
-            this.s = 1.2 + Math.random() * 1.6;
-            this.ang = Math.random() * 2 * Math.PI;
-            this.v = 0.08 + Math.random() * 0.2;
-            this.age = 0;
-            this.maxLife = 400 + Math.random() * 600;
-        }
-        move() {
-            this.x += this.v * Math.cos(this.ang);
-            this.y += this.v * Math.sin(this.ang);
-            this.ang += (Math.random() * 6 - 3) * Math.PI / 180;
-            this.age++;
-        }
-        show() {
-            let alpha = 0.85;
-            if (this.age < 80) {
-                alpha = (this.age / 80) * 0.85;
-            } else if (this.age > this.maxLife - 80) {
-                alpha = ((this.maxLife - this.age) / 80) * 0.85;
-            }
-
-            fCtx.save();
-            fCtx.beginPath();
-            fCtx.arc(this.x, this.y, this.s, 0, 2 * Math.PI);
-            fCtx.fillStyle = `rgba(253, 219, 163, ${Math.max(0, alpha)})`;
-            fCtx.shadowBlur = 8;
-            fCtx.shadowColor = "#fddba3";
-            fCtx.fill();
-            fCtx.restore();
-        }
-    }
-
-    function drawFireflies() {
-        if (fireflies.length < 85) fireflies.push(new Firefly());
-        fCtx.clearRect(0, 0, firefliesCanvas.width, firefliesCanvas.height);
-        for (let i = fireflies.length - 1; i >= 0; i--) {
-            const f = fireflies[i];
-            f.move();
-            f.show();
-            if (f.age >= f.maxLife || f.x < -10 || f.x > firefliesCanvas.width + 10 || f.y < -10 || f.y > firefliesCanvas.height + 10) {
-                fireflies.splice(i, 1);
-            }
-        }
-    }
-
-    function loopFireflies() {
-        drawFireflies();
-        firefliesAnimationId = requestAnimationFrame(loopFireflies);
-    }
-
-    $('#btn-fireflies').on('click', function() {
-        firefliesActive = !firefliesActive;
-        $(this).toggleClass('active-weather', firefliesActive);
-        if (firefliesActive) {
-            firefliesCanvas.style.visibility = 'visible';
-            if (!firefliesAnimationId) loopFireflies();
-        } else {
-            cancelAnimationFrame(firefliesAnimationId);
-            firefliesAnimationId = null;
-            firefliesCanvas.style.visibility = 'hidden';
+            fogContainer.innerHTML = '';
         }
     });
 
@@ -573,13 +472,10 @@ jQuery(() => {
         lastWidth = window.innerWidth;
         firefliesCanvas.width = window.innerWidth;
         firefliesCanvas.height = window.innerHeight;
-        fogCanvas.width = window.innerWidth;
-        fogCanvas.height = window.innerHeight;
         rCanvas.width = window.innerWidth;
         rCanvas.height = window.innerHeight;
         osCanvas.width = window.innerWidth;
         osCanvas.height = window.innerHeight;
-        if (fogActive) initSmokeClouds();
     }
 
     window.addEventListener('resize', () => {
