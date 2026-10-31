@@ -180,7 +180,28 @@
         opacity: 0;
     }
 }
+/* ================= АППАРАТНЫЙ ДЫМНЫЙ ТУМАН НА GPU (НЕ ЗАМИРАЕТ ПРИ ЛАГАХ ЧАТА) ================= */
+.st-smoke-puff {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    will-change: transform;
+    pointer-events: none;
+    animation-name: st-smoke-drift;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
 
+@keyframes st-smoke-drift {
+    0% {
+        transform: translate3d(105vw, var(--smoke-y), 0);
+    }
+    100% {
+        transform: translate3d(-90vw, var(--smoke-y), 0);
+    }
+}
 /* ================= АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ ТЕЛЕФОНОВ ================= */
 @media (max-width: 768px) {
     .st-weather-buttons-container {
@@ -215,3 +236,5 @@
         margin: 3px 0;
     }
 }
+
+
