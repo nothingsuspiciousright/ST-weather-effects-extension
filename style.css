@@ -16,7 +16,7 @@
     align-items: center;
     gap: 2px;
     overflow: hidden;
-    max-width: 350px;
+    max-width: 440px; /* Увеличено под 2 новые кнопки */
     opacity: 1;
     transition: max-width 0.35s ease, opacity 0.25s ease, transform 0.3s ease;
     transform: translateX(0);
@@ -137,7 +137,7 @@
     }
 }
 
-/* Стили для сакуры (Защищено !important от перебивания темой ST) */
+/* Стили для сакуры */
 .petal {
     width: 18px !important;
     height: 18px !important;
@@ -149,7 +149,7 @@
     filter: drop-shadow(0 0 2px rgba(255, 182, 193, 0.4));
 }
 
-/* Стили для осенних листьев Момидзи (Защищено !important от перебивания темой ST) */
+/* Стили для осенних листьев Момидзи */
 .leaf {
     width: 28px !important;
     height: 28px !important;
@@ -182,6 +182,63 @@
     }
 }
 
+/* ================= ЭФФЕКТ СТАРОЙ ПЛЁНКИ / VHS / ВИНИЛА ================= */
+.st-vhs-vignette {
+    position: absolute !important;
+    inset: 0 !important;
+    /* Мягкая кинематографичная виньетка по краям + тёплое ретро-тонирование в центре */
+    background: radial-gradient(
+        circle at center,
+        rgba(255, 215, 175, 0.05) 0%,
+        rgba(20, 12, 24, 0.22) 65%,
+        rgba(5, 3, 8, 0.68) 100%
+    ) !important;
+    animation: st-vhs-flicker 5s infinite alternate ease-in-out !important;
+}
+
+.st-vhs-scanlines {
+    position: absolute !important;
+    inset: 0 !important;
+    /* Тонкие горизонтальные полоски CRT/VHS экрана */
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 2px,
+        rgba(0, 0, 0, 0.18) 3px,
+        rgba(0, 0, 0, 0.18) 4px
+    ) !important;
+    opacity: 0.65;
+}
+
+.st-vhs-glitch {
+    position: absolute !important;
+    inset: 0 !important;
+    /* Плывущая полоса трекинга старой видеокассеты + легкий неоновый сдвиг */
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(255, 0, 128, 0.03) 48%,
+        rgba(0, 255, 255, 0.06) 50%,
+        transparent 52%,
+        transparent 100%
+    ) !important;
+    background-size: 100% 35vh !important;
+    background-repeat: no-repeat !important;
+    animation: st-vhs-tracking 9s linear infinite !important;
+}
+
+@keyframes st-vhs-flicker {
+    0%, 100% { opacity: 0.92; }
+    50%      { opacity: 1.0; }
+    52%      { opacity: 0.86; }
+    54%      { opacity: 0.98; }
+}
+
+@keyframes st-vhs-tracking {
+    0%   { background-position: 0 -40vh; }
+    100% { background-position: 0 130vh; }
+}
+
 /* ================= АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ ТЕЛЕФОНОВ ================= */
 @media (max-width: 768px) {
     .st-weather-buttons-container {
@@ -192,27 +249,30 @@
     }
 
     .st-weather-menu-items {
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: repeat(2, 28px); /* Компактно в 2 столбика на телефоне! */
+        gap: 4px;
         max-width: none;
-        max-height: 350px;
+        max-height: 260px;
         margin-top: 4px;
-        padding: 4px;
+        padding: 6px;
         border-radius: 14px;
-        background-color: rgba(20, 20, 25, 0.65);
+        background-color: rgba(20, 20, 25, 0.72);
         backdrop-filter: blur(4px);
-        transition: max-height 0.35s ease, opacity 0.25s ease, transform 0.3s ease;
+        transition: max-height 0.3s ease, opacity 0.2s ease, transform 0.25s ease;
     }
 
     .st-weather-menu-items.collapsed {
         max-width: none;
         max-height: 0;
-        padding: 0 4px;
+        padding: 0 6px;
         transform: translateY(-10px);
     }
 
     .st-weather-divider {
-        width: 18px;
+        grid-column: 1 / -1; /* Разделитель на всю ширину двух столбиков */
+        width: 100%;
         height: 1px;
-        margin: 3px 0;
+        margin: 2px 0;
     }
 }
