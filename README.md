@@ -1,6 +1,6 @@
 # ST-weather-effects-extension
 Silly Tavern Weather Effects Extension
-# 🌤️ ST Weather & Atmosphere Effects (Погодные и атмосферные эффекты для SillyTavern)
+
 
 # 🌤️ ST Weather & Atmosphere Effects (for SillyTavern)
 
@@ -56,7 +56,7 @@ In the SillyTavern **Extensions -> Weather Effects** panel, you can enable **�
 
 
 
-#RU
+# 🌤️ ST Weather & Atmosphere Effects (Погодные и атмосферные эффекты для SillyTavern)
 
 Лёгкое, полностью автономное расширение для **SillyTavern**, которое добавляет живые погодные явления, частицы и кинематографичные спецэффекты прямо в ваш чат — с поддержкой умного режима **🤖 Smart Auto-Weather**, автоматически реагирующего на события в вашей ролевой игре!
 
