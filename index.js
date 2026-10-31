@@ -831,7 +831,7 @@ jQuery(() => {
             id: 'rays',
             btn: '#btn-rays',
             isActive: () => raysActive,
-            regex: makeWeatherRegex('sunbeams|sunrays|golden rays|shafts of light|morning sun|sunlight|солнечные лучи|лучи солнца|солнечный свет')
+            regex: makeWeatherRegex('sunbeams|sunrays|golden rays|shafts of light|morning sun|sunlight|солнечные лучи|лучи солнца|солнечный свет|солнечно')
         },
         {
             id: 'fireflies',
