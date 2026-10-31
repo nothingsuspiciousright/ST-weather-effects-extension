@@ -39,12 +39,7 @@ jQuery(() => {
                 <div class="inline-drawer-content">
                     <label class="checkbox_label" for="st-weather-enabled-checkbox" style="margin-top: 8px;">
                         <input id="st-weather-enabled-checkbox" type="checkbox" />
-                        <span>Показывать кнопку погоды в интерфейсе</span>
-                    </label>
-                    <label class="checkbox_label" for="st-weather-overchat-checkbox" style="margin-top: 6px; margin-bottom: 6px;">
-                        <input id="st-weather-overchat-checkbox" type="checkbox" />
-                        <span>Накладывать эффекты поверх чата (🔀)</span>
-                    </label>
+              
                 </div>
             </div>
         </div>
