@@ -33,7 +33,7 @@ jQuery(() => {
         <div class="weather-extension-settings">
             <div class="inline-drawer">
                 <div class="inline-drawer-toggle inline-drawer-header">
-                    <b>Weather Effects (Погодные эффекты)</b>
+                    <b>Weather Effects</b>
                     <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
                 </div>
                 <div class="inline-drawer-content">
@@ -41,10 +41,7 @@ jQuery(() => {
                         <input id="st-weather-enabled-checkbox" type="checkbox" />
                         <span>Показывать кнопку погоды в интерфейсе</span>
                     </label>
-                    <label class="checkbox_label" for="st-weather-overchat-checkbox" style="margin-top: 6px; margin-bottom: 6px;">
-                        <input id="st-weather-overchat-checkbox" type="checkbox" />
-                        <span>Накладывать эффекты поверх чата (🔀)</span>
-                    </label>
+                
                 </div>
             </div>
         </div>
