@@ -27,11 +27,7 @@ jQuery(() => {
         <canvas id="fog-canvas" class="st-weather-layer"></canvas>
         <canvas id="rays-canvas" class="st-weather-layer"></canvas>
         <canvas id="embers-canvas" class="st-weather-layer"></canvas>
-        <div id="vhs-container" class="st-weather-layer">
-            <div class="st-vhs-vignette"></div>
-            <div class="st-vhs-scanlines"></div>
-            <div class="st-vhs-glitch"></div>
-        </div>
+        <canvas id="vhs-canvas" class="st-weather-layer"></canvas>
     `;
 
     $('body').append(weatherHTML);
@@ -672,11 +668,91 @@ jQuery(() => {
         }
     });
 
-    // ================= ЭФФЕКТ СТАРОЙ ПЛЁНКИ / VHS =================
+// ================= ЭФФЕКТ СТАРОЙ ПЛЁНКИ / VHS (ЖИВОЙ И ДЕЛИКАТНЫЙ НА CANVAS) =================
+    const vhsCanvas = document.getElementById('vhs-canvas');
+    const vhsCtx = vhsCanvas.getContext('2d');
+    let vhsAnimationId = null;
+    let vhsTime = 0;
+
+    // Генерируем маленькую текстуру мягкого плёночного зерна один раз
+    const grainCanvas = document.createElement('canvas');
+    grainCanvas.width = 128;
+    grainCanvas.height = 128;
+    const grainCtx = grainCanvas.getContext('2d');
+    const grainData = grainCtx.createImageData(128, 128);
+    for (let i = 0; i < grainData.data.length; i += 4) {
+        const val = Math.random() * 255;
+        grainData.data[i] = val;
+        grainData.data[i + 1] = val * 0.95;
+        grainData.data[i + 2] = val * 0.85;
+        grainData.data[i + 3] = Math.random() < 0.35 ? 18 : 0; // Очень деликатное зерно!
+    }
+    grainCtx.putImageData(grainData, 0, 0);
+
+    function loopVHS() {
+        const w = vhsCanvas.width;
+        const h = vhsCanvas.height;
+        vhsCtx.clearRect(0, 0, w, h);
+        vhsTime += 0.016;
+
+        // 1. Мягкая пульсирующая виньетка + тёплое ретро-свечение в центре
+        const pulse = Math.sin(vhsTime * 1.2) * 0.03 + Math.sin(vhsTime * 3.7) * 0.015;
+        const radGrad = vhsCtx.createRadialGradient(w * 0.5, h * 0.5, h * 0.15, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
+        radGrad.addColorStop(0, `rgba(255, 210, 165, ${0.04 + pulse * 0.3})`);
+        radGrad.addColorStop(0.6, 'rgba(20, 12, 24, 0.18)');
+        radGrad.addColorStop(1, `rgba(5, 3, 8, ${0.65 + pulse})`);
+        vhsCtx.fillStyle = radGrad;
+        vhsCtx.fillRect(0, 0, w, h);
+
+        // 2. Тонкие сканлайны (едва заметно плывут)
+        vhsCtx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+        const scanOffset = (vhsTime * 6) % 4;
+        for (let y = scanOffset; y < h; y += 4) {
+            vhsCtx.fillRect(0, y, w, 1.2);
+        }
+
+        // 3. Медленная полупрозрачная полоса VHS-трекинга (неоновый розовый/голубой отблеск)
+        const trackY = ((vhsTime * 35) % (h + 260)) - 130;
+        const trackGrad = vhsCtx.createLinearGradient(0, trackY - 70, 0, trackY + 70);
+        trackGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        trackGrad.addColorStop(0.42, 'rgba(255, 40, 140, 0.035)');
+        trackGrad.addColorStop(0.50, 'rgba(255, 255, 255, 0.045)');
+        trackGrad.addColorStop(0.58, 'rgba(0, 240, 255, 0.04)');
+        trackGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        vhsCtx.fillStyle = trackGrad;
+        vhsCtx.fillRect(0, trackY - 70, w, 140);
+
+        // 4. Редкие деликатные пылинки/царапинки старой киноплёнки
+        if (Math.random() < 0.18) {
+            const scratchX = Math.random() * w;
+            vhsCtx.fillStyle = `rgba(255, 235, 205, ${0.04 + Math.random() * 0.06})`;
+            vhsCtx.fillRect(scratchX, 0, 1, h);
+        }
+
+        // 5. Лёгкое живое зерно плёнки (сдвигается каждые несколько кадров)
+        const ox = Math.floor(Math.random() * 128);
+        const oy = Math.floor(Math.random() * 128);
+        vhsCtx.save();
+        const pattern = vhsCtx.createPattern(grainCanvas, 'repeat');
+        vhsCtx.translate(ox, oy);
+        vhsCtx.fillStyle = pattern;
+        vhsCtx.fillRect(-ox, -oy, w + 128, h + 128);
+        vhsCtx.restore();
+
+        vhsAnimationId = requestAnimationFrame(loopVHS);
+    }
+
     $('#btn-vhs').on('click', function() {
         vhsActive = !vhsActive;
         $(this).toggleClass('active-weather', vhsActive);
-        $('#vhs-container').css('visibility', vhsActive ? 'visible' : 'hidden');
+        if (vhsActive) {
+            vhsCanvas.style.visibility = 'visible';
+            if (!vhsAnimationId) loopVHS();
+        } else {
+            cancelAnimationFrame(vhsAnimationId);
+            vhsAnimationId = null;
+            vhsCanvas.style.visibility = 'hidden';
+        }
     });
 
     // ================= ЗАЩИЩЕННЫЙ РЕСАЙЗ ОКНА =================
@@ -695,6 +771,8 @@ jQuery(() => {
         osCanvas.height = window.innerHeight;
         eCanvas.width = window.innerWidth;
         eCanvas.height = window.innerHeight;
+        vhsCanvas.width = window.innerWidth;
+        vhsCanvas.height = window.innerHeight;
         if (fogActive) initSmokeClouds();
     }
 
