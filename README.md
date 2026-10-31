@@ -2,6 +2,62 @@
 Silly Tavern Weather Effects Extension
 # 🌤️ ST Weather & Atmosphere Effects (Погодные и атмосферные эффекты для SillyTavern)
 
+# 🌤️ ST Weather & Atmosphere Effects (for SillyTavern)
+
+A lightweight, 100% self-contained visual extension for **SillyTavern** that brings your roleplay scenes to life with dynamic weather, particles, and cinematic overlays — featuring an optional **🤖 Smart Auto-Weather** mode that automatically reacts to the events in your chat!
+
+---
+
+## ✨ Core Features (Manual Mode)
+
+A compact, collapsible **🌤️** button in the top-left corner opens a sleek toolbar with **9 atmospheric effects** that can be toggled individually or combined together:
+
+* 🪰 **Fireflies** — Softly glowing, pulsing forest lights lazily drifting through the air.
+* ❄️ **Snow** — A chaotic winter flurry with snowflakes of varying sizes, speeds, and depths.
+* 🌧️ **Rain** — Atmospheric rainfall for moody, melancholic, or cozy scenes.
+* 🌫️ **Smoke & Fog** — Procedurally generated, seamless clouds of thick mist and drifting cigarette smoke.
+* 🌸 **Sakura Petals** — Delicate pink cherry blossom petals swirling in the breeze.
+* 🌟 **Sunbeams** — Warm, slowly shimmering shafts of golden sunlight.
+* 🍁 **Momiji Leaves** — Vibrant crimson Japanese maple leaves for autumn scenes.
+* 🔥 **Embers & Ash** — Glowing orange cinders, floating gray ash, and a subtle warm hearth glow at the bottom of the screen (perfect for campfires, battles, ruins, and dark fantasy settings).
+* 📼 **Retro Film & VHS** — A subtle cinematic vignette, warm bloom, delicate animated film grain, CRT scanlines, and soft VHS tracking glints.
+
+### 🎛️ Controls & Optimization:
+* 🔀 **Layer Mode Toggle (Background / Over Chat):** Switch with a single click between rendering effects strictly behind the chat window (background only) or over the entire UI for maximum immersion.
+* 📱 **Mobile-Friendly Design:** Features a compact two-column dropdown grid on smartphones, zero tap delay, no sticky hover states, and mobile-optimized frame rates.
+* 🔒 **100% Self-Contained (No External Images):** All textures (smoke wisps, sakura petals, momiji leaves, film grain) are procedurally generated or embedded as inline SVG/Canvas — the extension never relies on external image hosts and works completely offline.
+
+---
+
+## 🤖 Smart Auto-Weather (Context-Aware Mode)
+
+In the SillyTavern **Extensions -> Weather Effects** panel, you can enable **🤖 Smart Auto-Weather**.
+
+### How It Works:
+1. **Bilingual Context Scanning (EN / RU):** The extension automatically reads the latest messages in your chat in both **English and Russian** (while smartly ignoring technical API/Proxy error messages).
+2. **Dynamic Roleplay Reactions:**
+   * Mentioning *rain, pouring, drizzle, or thunderstorm* automatically starts the **Rain** 🌧️.
+   * When a character *lights a cigarette, exhales smoke, or walks into fog/mist*, **Smoke & Fog** gently fills the screen 🚬🌫️.
+   * Describing *a campfire, flames, sparks, embers, or ash* triggers rising **Embers & Ash** 🔥.
+   * Also automatically detects *snow/blizzards ❄️, cherry blossoms/sakura 🌸, falling autumn/maple leaves 🍁, sunbeams/sunlight 🌟, and fireflies 🪰*.
+3. **Smart Scene Fade-Out:**
+   * Auto-triggered effects stay active for the duration of the current micro-scene (the last 2–3 messages). Once the conversation moves on, the character finishes smoking, or the scene changes (or if stop-phrases like *"rain stopped"*, *"puts out the cigarette"*, *"went inside"* appear), the auto-effect **automatically turns itself off**!
+   * Effects that you turned on **manually** via the toolbar will never be turned off by Auto-Weather.
+   * Unchecking **Smart Auto-Weather** in the settings immediately clears any effects it had automatically triggered.
+
+---
+
+## 📥 Installation
+
+1. Open **SillyTavern** -> go to the **Extensions** tab (the cubes icon at the top) -> click **Install extension**.
+2. Paste the repository URL:
+   ```text
+   https://github.com/nothingsuspiciousright/ST-weather-effects-extension
+
+
+
+#RU
+
 Лёгкое, полностью автономное расширение для **SillyTavern**, которое добавляет живые погодные явления, частицы и кинематографичные спецэффекты прямо в ваш чат — с поддержкой умного режима **🤖 Smart Auto-Weather**, автоматически реагирующего на события в вашей ролевой игре!
 
 ---
