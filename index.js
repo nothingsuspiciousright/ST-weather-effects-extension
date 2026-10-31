@@ -1,5 +1,5 @@
 jQuery(() => {
-    // 1. Встраиваем кнопки погоды и контейнеры слоёв в интерфейс SillyTavern
+    // 1. Встраиваем кнопки погоды и холсты в интерфейс SillyTavern
     const weatherHTML = `
         <div id="st-weather-buttons-container" class="st-weather-buttons-container">
             <button id="btn-weather-toggle-menu" class="toggleWeather" title="Свернуть/развернуть меню погоды">🌤️</button>
@@ -17,13 +17,13 @@ jQuery(() => {
             </div>
         </div>
 
-        <div id="fireflies-container" class="st-weather-layer"></div>
+        <canvas id="fireflies-effect" class="st-weather-layer"></canvas>
         <div id="snow-container" class="st-weather-layer"></div>
         <div id="rain-container" class="st-weather-layer"></div>
         <div id="petals-container" class="st-weather-layer"></div>
         <div id="leaves-container" class="st-weather-layer"></div>
-        <div id="fog-container" class="st-weather-layer"></div>
-        <div id="rays-container" class="st-weather-layer"></div>
+        <canvas id="fog-canvas" class="st-weather-layer"></canvas>
+        <canvas id="rays-canvas" class="st-weather-layer"></canvas>
     `;
 
     $('body').append(weatherHTML);
@@ -48,14 +48,9 @@ jQuery(() => {
 
     $('#extensions_settings').append(settingsHTML);
 
-    // Динамические таблицы стилей для индивидуальных траекторий
     const snowStyleSheet = document.createElement('style');
     snowStyleSheet.id = 'st-snow-styles';
     document.head.appendChild(snowStyleSheet);
-
-    const firefliesStyleSheet = document.createElement('style');
-    firefliesStyleSheet.id = 'st-fireflies-styles';
-    document.head.appendChild(firefliesStyleSheet);
 
     // Переменные состояния
     let fogActive = false;
@@ -126,68 +121,14 @@ jQuery(() => {
         updateLayerMode();
     });
 
-    // ================= СВЕТЛЯЧКИ НА GPU (ПЛАВНЫЕ, НЕ ЗАМИРАЮТ И НЕ МЕЛЬЧАЮТ!) =================
-    $('#btn-fireflies').on('click', function() {
-        firefliesActive = !firefliesActive;
-        $(this).toggleClass('active-weather', firefliesActive);
-        const container = document.getElementById('fireflies-container');
-        container.style.visibility = firefliesActive ? 'visible' : 'hidden';
+    // ================= ДЫМНЫЙ ТУМАН НА CANVAS (БЕЗ ШВОВ И ПЛИТОК!) =================
+    const fogCanvas = document.getElementById('fog-canvas');
+    const fogCtx = fogCanvas.getContext('2d');
+    let fogAnimationId = null;
+    let smokeSprites = null;
+    let smokeClouds = [];
 
-        if (firefliesActive) {
-            requestAnimationFrame(() => {
-                const fragment = document.createDocumentFragment();
-                const isMobile = window.innerWidth <= 768;
-                const total = isMobile ? 45 : 75;
-                let keyframesCSS = '';
-
-                for (let i = 0; i < total; i++) {
-                    const ff = document.createElement('div');
-                    ff.className = 'st-firefly';
-
-                    // Размер от 3px до 6px (с учётом мягкого свечения)
-                    const size = (2.5 + Math.random() * 3).toFixed(1);
-                    const x0 = Math.random() * 100;
-                    const y0 = Math.random() * 100;
-                    const x1 = x0 + (Math.random() * 30 - 15);
-                    const y1 = y0 + (Math.random() * 30 - 15);
-                    const x2 = x0 + (Math.random() * 30 - 15);
-                    const y2 = y0 + (Math.random() * 30 - 15);
-                    const x3 = x0 + (Math.random() * 30 - 15);
-                    const y3 = y0 + (Math.random() * 30 - 15);
-
-                    const moveDuration = (28 + Math.random() * 25).toFixed(1) + 's';
-                    const moveDelay = -(Math.random() * 40).toFixed(1) + 's';
-                    const pulseDuration = (3 + Math.random() * 4).toFixed(1) + 's';
-
-                    ff.style.width = `${size}px`;
-                    ff.style.height = `${size}px`;
-                    ff.style.animation = `st-ff-move-${i} ${moveDuration} ${moveDelay} ease-in-out infinite alternate, st-ff-pulse ${pulseDuration} ${moveDelay} ease-in-out infinite alternate`;
-
-                    fragment.appendChild(ff);
-
-                    keyframesCSS += `
-                        @keyframes st-ff-move-${i} {
-                            0%   { transform: translate3d(${x0}vw, ${y0}vh, 0); }
-                            33%  { transform: translate3d(${x1}vw, ${y1}vh, 0); }
-                            66%  { transform: translate3d(${x2}vw, ${y2}vh, 0); }
-                            100% { transform: translate3d(${x3}vw, ${y3}vh, 0); }
-                        }
-                    `;
-                }
-                firefliesStyleSheet.innerText = keyframesCSS;
-                container.appendChild(fragment);
-            });
-        } else {
-            container.innerHTML = '';
-            firefliesStyleSheet.innerText = '';
-        }
-    });
-
-    // ================= ДЫМНЫЙ ТУМАН НА GPU =================
-    const fogContainer = document.getElementById('fog-container');
-    let smokeDataUrls = null;
-
-    function createSmokeSpriteDataUrl(size, seed) {
+    function createSmokeSprite(size, seed) {
         const off = document.createElement('canvas');
         off.width = size;
         off.height = size;
@@ -218,7 +159,7 @@ jQuery(() => {
             let v = 0;
             let amp = 0.5;
             let freq = 1;
-            for (let i = 0; i < 4; i++) {
+            for (let i = 0; i < 5; i++) {
                 v += noise(x * freq, y * freq) * amp;
                 freq *= 2.05;
                 amp *= 0.5;
@@ -251,52 +192,150 @@ jQuery(() => {
         }
 
         ctx.putImageData(img, 0, 0);
-        return off.toDataURL('image/png');
+        return off;
+    }
+
+    function ensureSmokeReady() {
+        if (!smokeSprites) {
+            smokeSprites = [
+                createSmokeSprite(256, 12.3),
+                createSmokeSprite(256, 45.8),
+                createSmokeSprite(256, 78.1),
+                createSmokeSprite(256, 109.4)
+            ];
+        }
+        if (smokeClouds.length === 0) {
+            initSmokeClouds();
+        }
+    }
+
+    class SmokeCloud {
+        constructor() {
+            this.sprite = smokeSprites[Math.floor(Math.random() * smokeSprites.length)];
+            this.w = window.innerWidth * (0.45 + Math.random() * 0.45);
+            this.h = window.innerHeight * (0.35 + Math.random() * 0.40);
+            this.x = Math.random() * (window.innerWidth + this.w) - this.w * 0.5;
+            this.y = window.innerHeight * (0.25 + Math.random() * 0.65) - this.h * 0.5;
+            this.vx = -(0.12 + Math.random() * 0.22);
+            this.opacity = 0.22 + Math.random() * 0.22;
+        }
+        update() {
+            this.x += this.vx;
+            if (this.x + this.w < -50) {
+                this.x = fogCanvas.width + 50;
+                this.y = fogCanvas.height * (0.25 + Math.random() * 0.65) - this.h * 0.5;
+            }
+        }
+        draw() {
+            fogCtx.save();
+            fogCtx.globalAlpha = this.opacity;
+            fogCtx.drawImage(this.sprite, this.x, this.y, this.w, this.h);
+            fogCtx.restore();
+        }
+    }
+
+    function initSmokeClouds() {
+        if (!smokeSprites) return;
+        smokeClouds = [];
+        for (let i = 0; i < 16; i++) {
+            smokeClouds.push(new SmokeCloud());
+        }
+    }
+
+    function loopFog() {
+        fogCtx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
+        for (let i = 0; i < smokeClouds.length; i++) {
+            smokeClouds[i].update();
+            smokeClouds[i].draw();
+        }
+        fogAnimationId = requestAnimationFrame(loopFog);
     }
 
     $('#btn-fog').on('click', function() {
         fogActive = !fogActive;
         $(this).toggleClass('active-weather', fogActive);
-        fogContainer.style.visibility = fogActive ? 'visible' : 'hidden';
-
         if (fogActive) {
+            fogCanvas.style.visibility = 'visible';
             requestAnimationFrame(() => {
-                if (!smokeDataUrls) {
-                    smokeDataUrls = [
-                        createSmokeSpriteDataUrl(128, 12.3),
-                        createSmokeSpriteDataUrl(128, 45.8),
-                        createSmokeSpriteDataUrl(128, 78.1),
-                        createSmokeSpriteDataUrl(128, 109.4)
-                    ];
-                }
-                const fragment = document.createDocumentFragment();
-                const totalPuffs = 16;
-                for (let i = 0; i < totalPuffs; i++) {
-                    const puff = document.createElement('div');
-                    puff.className = 'st-smoke-puff';
-                    const spriteUrl = smokeDataUrls[i % smokeDataUrls.length];
-
-                    const w = 55 + Math.random() * 35;
-                    const h = 40 + Math.random() * 40;
-                    const y = 10 + Math.random() * 65;
-                    const duration = 55 + Math.random() * 45;
-                    const delay = -(Math.random() * duration);
-                    const opacity = 0.24 + Math.random() * 0.22;
-
-                    puff.style.width = `${w}vw`;
-                    puff.style.height = `${h}vh`;
-                    puff.style.setProperty('--smoke-y', `${y}vh`);
-                    puff.style.backgroundImage = `url("${spriteUrl}")`;
-                    puff.style.opacity = opacity;
-                    puff.style.animationDuration = `${duration}s`;
-                    puff.style.animationDelay = `${delay}s`;
-
-                    fragment.appendChild(puff);
-                }
-                fogContainer.appendChild(fragment);
+                ensureSmokeReady();
+                if (!fogAnimationId) loopFog();
             });
         } else {
-            fogContainer.innerHTML = '';
+            cancelAnimationFrame(fogAnimationId);
+            fogAnimationId = null;
+            fogCanvas.style.visibility = 'hidden';
+        }
+    });
+
+    // ================= СВЕТЛЯЧКИ НА CANVAS (ПЛАВНЫЕ И МЕДЛЕННЫЕ) =================
+    const firefliesCanvas = document.getElementById('fireflies-effect');
+    const fCtx = firefliesCanvas.getContext('2d');
+    const fireflies = [];
+    let firefliesAnimationId = null;
+
+    class Firefly {
+        constructor() {
+            this.x = Math.random() * firefliesCanvas.width;
+            this.y = Math.random() * firefliesCanvas.height;
+            this.s = 1.2 + Math.random() * 1.6;
+            this.ang = Math.random() * 2 * Math.PI;
+            this.v = 0.08 + Math.random() * 0.2;
+            this.age = 0;
+            this.maxLife = 400 + Math.random() * 600;
+        }
+        move() {
+            this.x += this.v * Math.cos(this.ang);
+            this.y += this.v * Math.sin(this.ang);
+            this.ang += (Math.random() * 6 - 3) * Math.PI / 180;
+            this.age++;
+        }
+        show() {
+            let alpha = 0.85;
+            if (this.age < 80) {
+                alpha = (this.age / 80) * 0.85;
+            } else if (this.age > this.maxLife - 80) {
+                alpha = ((this.maxLife - this.age) / 80) * 0.85;
+            }
+
+            fCtx.save();
+            fCtx.beginPath();
+            fCtx.arc(this.x, this.y, this.s, 0, 2 * Math.PI);
+            fCtx.fillStyle = `rgba(253, 219, 163, ${Math.max(0, alpha)})`;
+            fCtx.shadowBlur = 8;
+            fCtx.shadowColor = "#fddba3";
+            fCtx.fill();
+            fCtx.restore();
+        }
+    }
+
+    function drawFireflies() {
+        if (fireflies.length < 85) fireflies.push(new Firefly());
+        fCtx.clearRect(0, 0, firefliesCanvas.width, firefliesCanvas.height);
+        for (let i = fireflies.length - 1; i >= 0; i--) {
+            const f = fireflies[i];
+            f.move();
+            f.show();
+            if (f.age >= f.maxLife || f.x < -10 || f.x > firefliesCanvas.width + 10 || f.y < -10 || f.y > firefliesCanvas.height + 10) {
+                fireflies.splice(i, 1);
+            }
+        }
+    }
+
+    function loopFireflies() {
+        drawFireflies();
+        firefliesAnimationId = requestAnimationFrame(loopFireflies);
+    }
+
+    $('#btn-fireflies').on('click', function() {
+        firefliesActive = !firefliesActive;
+        $(this).toggleClass('active-weather', firefliesActive);
+        if (firefliesActive) {
+            firefliesCanvas.style.visibility = 'visible';
+            if (!firefliesAnimationId) loopFireflies();
+        } else {
+            cancelAnimationFrame(firefliesAnimationId);
+            firefliesAnimationId = null;
+            firefliesCanvas.style.visibility = 'hidden';
         }
     });
 
@@ -351,7 +390,7 @@ jQuery(() => {
 
                     snowflake.style.opacity = Math.random();
                     snowflake.style.transform = `translate(${randomX}vw, -10px) scale(${randomScale})`;
-                    snowflake.style.animation = `st-snow-fall-${index} ${fallDuration} ${fallDelay} linear infinite`;
+                    snowflake.style.setProperty('animation', `st-snow-fall-${index} ${fallDuration} ${fallDelay} linear infinite`, 'important');
 
                     fragment.appendChild(snowflake);
 
@@ -366,7 +405,7 @@ jQuery(() => {
         }
     });
 
-    // ================= САКУРА =================
+    // ================= САКУРА (ЗАЩИЩЕНА ОТ ТЕМЫ ST ЧЕРЕЗ !important) =================
     $('#btn-petals').on('click', function() {
         petalsActive = !petalsActive;
         $(this).toggleClass('active-weather', petalsActive);
@@ -380,10 +419,11 @@ jQuery(() => {
                 for (let i = 0; i < totalPetals; i++) {
                     const petal = document.createElement('div');
                     petal.className = 'petal';
-                    petal.style.top = '-10rem';
-                    petal.style.left = `${Math.random() * window.innerWidth}px`;
-                    petal.style.animation = `st-weather-fall ${Math.random() * (30 - 10) + 10}s linear infinite`;
-                    petal.style.animationDelay = `${Math.random() * -20}s`;
+                    petal.style.top = '-10vh';
+                    petal.style.left = `${Math.random() * 100}vw`;
+                    const dur = (Math.random() * 20 + 10).toFixed(1);
+                    const del = -(Math.random() * 20).toFixed(1);
+                    petal.style.setProperty('animation', `st-weather-fall ${dur}s ${del}s linear infinite`, 'important');
                     fragment.appendChild(petal);
                 }
                 petalsContainer.appendChild(fragment);
@@ -393,7 +433,7 @@ jQuery(() => {
         }
     });
 
-    // ================= ОСЕННИЕ ЛИСТЬЯ (МОМИДЗИ) =================
+    // ================= ОСЕННИЕ ЛИСТЬЯ МОМИДЗИ (ЗАЩИЩЕНЫ ОТ ТЕМЫ ST ЧЕРЕЗ !important) =================
     $('#btn-leaves').on('click', function() {
         leavesActive = !leavesActive;
         $(this).toggleClass('active-weather', leavesActive);
@@ -407,10 +447,11 @@ jQuery(() => {
                 for (let i = 0; i < totalLeaves; i++) {
                     const leaf = document.createElement('div');
                     leaf.className = 'leaf';
-                    leaf.style.top = '-10rem';
-                    leaf.style.left = `${Math.random() * window.innerWidth}px`;
-                    leaf.style.animation = `st-weather-fall ${Math.random() * (30 - 10) + 10}s linear infinite`;
-                    leaf.style.animationDelay = `${Math.random() * -20}s`;
+                    leaf.style.top = '-10vh';
+                    leaf.style.left = `${Math.random() * 100}vw`;
+                    const dur = (Math.random() * 20 + 10).toFixed(1);
+                    const del = -(Math.random() * 20).toFixed(1);
+                    leaf.style.setProperty('animation', `st-weather-fall ${dur}s ${del}s linear infinite`, 'important');
                     fragment.appendChild(leaf);
                 }
                 leavesContainer.appendChild(fragment);
@@ -420,44 +461,126 @@ jQuery(() => {
         }
     });
 
-    // ================= ЛУЧИ НА GPU (НЕ ЗАМИРАЮТ ПРИ ЛАГАХ ЧАТА!) =================
+    // ================= ОРИГИНАЛЬНЫЕ ЛУЧИ НА CANVAS =================
+    const rCanvas = document.getElementById('rays-canvas');
+    const rCtx = rCanvas.getContext('2d');
+    const osCanvas = document.createElement('canvas');
+    const osCtx = osCanvas.getContext('2d');
+    let raysObjects = [];
+    const numRays = 30;
+    let raysAnimationId = null;
+
+    function wave(t, a) {
+        return Math.abs((t + a / 2) % a - a / 2);
+    }
+
+    class Ray {
+        constructor() {
+            this.ctx = osCtx;
+            this.angle = 85 * Math.PI / 180;
+            this.init();
+        }
+        init() {
+            this.velocity = 0.25 - Math.random() * 0.5;
+            this.len = rCanvas.height / 2 + Math.random() * (rCanvas.height / 2);
+            this.start = { x: Math.random() * (rCanvas.width + 100) - 50, y: 0 };
+            this.end = {
+                x: this.start.x + this.len * Math.cos(this.angle),
+                y: this.start.y + this.len * Math.sin(this.angle)
+            };
+            this.ttl = 100 + Math.random() * 200;
+            this.life = 0;
+            this.width = 0.5 + Math.random() * 4;
+            this.hue = Math.round(45 + Math.random() * 15).toString();
+            this.saturation = Math.round(20 + Math.random() * 40).toString();
+        }
+        color() {
+            const alpha = wave(this.life, this.ttl) * 0.005;
+            const color1 = `hsla(${this.hue},${this.saturation}%,60%,${alpha})`;
+            const color2 = 'hsla(50,20%,20%,0)';
+            const gradient = rCtx.createLinearGradient(this.start.x, this.start.y, this.end.x, this.end.y);
+            gradient.addColorStop(0, color1);
+            gradient.addColorStop(1, color2);
+            return gradient;
+        }
+        draw() {
+            this.ctx.beginPath();
+            this.ctx.strokeStyle = this.color();
+            this.ctx.lineWidth = this.width;
+            this.ctx.moveTo(this.start.x, this.start.y);
+            this.ctx.lineTo(this.end.x, this.end.y);
+            this.ctx.stroke();
+            this.ctx.closePath();
+        }
+        update() {
+            if (this.life > this.ttl) this.init();
+            this.life++;
+            this.start.x += this.velocity;
+            this.end.x += this.velocity;
+        }
+    }
+
+    function createRays() {
+        raysObjects = [];
+        for (let i = 0; i < numRays; i++) {
+            raysObjects.push(new Ray());
+        }
+    }
+
+    function renderRays() {
+        osCtx.clearRect(0, 0, rCanvas.width, rCanvas.height);
+        osCtx.shadowBlur = 30;
+        osCtx.shadowColor = "white";
+        osCtx.globalCompositeOperation = "lighter";
+        for (let i = 0; i < raysObjects.length; i++) {
+            raysObjects[i].update();
+            raysObjects[i].draw();
+        }
+        rCtx.clearRect(0, 0, rCanvas.width, rCanvas.height);
+        rCtx.drawImage(osCanvas, 0, 0);
+    }
+
+    function loopRays() {
+        renderRays();
+        raysAnimationId = requestAnimationFrame(loopRays);
+    }
+
     $('#btn-rays').on('click', function() {
         raysActive = !raysActive;
         $(this).toggleClass('active-weather', raysActive);
-        const raysContainer = document.getElementById('rays-container');
-        raysContainer.style.visibility = raysActive ? 'visible' : 'hidden';
-
         if (raysActive) {
-            requestAnimationFrame(() => {
-                const fragment = document.createDocumentFragment();
-                const numRays = 28;
-                for (let i = 0; i < numRays; i++) {
-                    const ray = document.createElement('div');
-                    ray.className = 'st-sun-ray';
-
-                    const x = Math.random() * 110 - 5; // -5vw .. 105vw
-                    const len = 55 + Math.random() * 45; // 55vh .. 100vh
-                    const width = 2 + Math.random() * 6; // 2px .. 8px
-                    const hue = Math.round(45 + Math.random() * 15);
-                    const sat = Math.round(25 + Math.random() * 40);
-                    const duration = (6 + Math.random() * 8).toFixed(1) + 's';
-                    const delay = -(Math.random() * 12).toFixed(1) + 's';
-                    const drift = (Math.random() * 8 - 4).toFixed(1) + 'vw';
-
-                    ray.style.left = `${x}vw`;
-                    ray.style.height = `${len}vh`;
-                    ray.style.width = `${width}px`;
-                    ray.style.setProperty('--ray-color', `hsla(${hue}, ${sat}%, 65%, 0.32)`);
-                    ray.style.setProperty('--ray-drift', drift);
-                    ray.style.animationDuration = `${duration}`;
-                    ray.style.animationDelay = `${delay}`;
-
-                    fragment.appendChild(ray);
-                }
-                raysContainer.appendChild(fragment);
-            });
+            rCanvas.style.visibility = 'visible';
+            if (!raysAnimationId) loopRays();
         } else {
-            raysContainer.innerHTML = '';
+            cancelAnimationFrame(raysAnimationId);
+            raysAnimationId = null;
+            rCanvas.style.visibility = 'hidden';
         }
     });
+
+    // ================= ЗАЩИЩЕННЫЙ РЕСАЙЗ ОКНА =================
+    let lastWidth = 0;
+    let resizeTimeout = null;
+
+    function updateCanvasSizes() {
+        lastWidth = window.innerWidth;
+        firefliesCanvas.width = window.innerWidth;
+        firefliesCanvas.height = window.innerHeight;
+        fogCanvas.width = window.innerWidth;
+        fogCanvas.height = window.innerHeight;
+        rCanvas.width = window.innerWidth;
+        rCanvas.height = window.innerHeight;
+        osCanvas.width = window.innerWidth;
+        osCanvas.height = window.innerHeight;
+        if (fogActive) initSmokeClouds();
+    }
+
+    window.addEventListener('resize', () => {
+        if (Math.abs(window.innerWidth - lastWidth) < 20) return;
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(updateCanvasSizes, 250);
+    });
+
+    updateCanvasSizes();
+    createRays();
 });
