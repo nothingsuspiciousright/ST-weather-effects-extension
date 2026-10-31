@@ -62,10 +62,20 @@
     flex-shrink: 0;
 }
 
-.toggleWeather:hover, .toggleWeather.active-weather {
+/* Активная (включенная) кнопка светится и на ПК, и на телефоне */
+.toggleWeather.active-weather {
     opacity: 0.85;
     background-color: rgba(255, 255, 255, 0.25);
     filter: none;
+}
+
+/* Подсветка при наведении работает ТОЛЬКО на устройствах с мышкой (не залипает на телефонах!) */
+@media (hover: hover) and (pointer: fine) {
+    .toggleWeather:hover {
+        opacity: 0.85;
+        background-color: rgba(255, 255, 255, 0.25);
+        filter: none;
+    }
 }
 
 #btn-weather-toggle-menu.menu-open {
