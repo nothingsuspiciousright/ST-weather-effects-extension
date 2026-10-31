@@ -41,8 +41,12 @@
 }
 
 /* Стили для кнопок */
+/* Стили для кнопок */
 .toggleWeather {
     pointer-events: auto;
+    touch-action: manipulation; /* Убирает задержку нажатия 300мс на смартфонах! */
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
     opacity: 0.25;
     background-color: rgba(255, 255, 255, 0.1);
     border: none;
@@ -57,7 +61,7 @@
     justify-content: center;
     align-items: center;
     text-align: center;
-    transition: all 0.2s ease;
+    transition: opacity 0.1s ease, background-color 0.1s ease; /* Мгновенный отклик! */
     padding: 0;
     flex-shrink: 0;
 }
