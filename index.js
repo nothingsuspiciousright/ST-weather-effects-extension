@@ -39,7 +39,9 @@ jQuery(() => {
                 <div class="inline-drawer-content">
                     <label class="checkbox_label" for="st-weather-enabled-checkbox" style="margin-top: 8px;">
                         <input id="st-weather-enabled-checkbox" type="checkbox" />
-              
+                        <span>Показывать кнопку погоды в интерфейсе</span>
+                    </label>
+                  
                 </div>
             </div>
         </div>
