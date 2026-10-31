@@ -481,21 +481,24 @@ jQuery(() => {
             this.init();
         }
         init() {
-            this.velocity = 0.25 - Math.random() * 0.5;
+            // Скорость движения в стороны в 3.5 раза медленнее
+            this.velocity = 0.07 - Math.random() * 0.14;
             this.len = rCanvas.height / 2 + Math.random() * (rCanvas.height / 2);
             this.start = { x: Math.random() * (rCanvas.width + 100) - 50, y: 0 };
             this.end = {
                 x: this.start.x + this.len * Math.cos(this.angle),
                 y: this.start.y + this.len * Math.sin(this.angle)
             };
-            this.ttl = 100 + Math.random() * 200;
+            // Время жизни луча в 3 раза дольше (очень плавное разгорание и угасание)
+            this.ttl = 400 + Math.random() * 500;
             this.life = 0;
             this.width = 0.5 + Math.random() * 4;
             this.hue = Math.round(45 + Math.random() * 15).toString();
             this.saturation = Math.round(20 + Math.random() * 40).toString();
         }
         color() {
-            const alpha = wave(this.life, this.ttl) * 0.005;
+            // Скорректированный множитель яркости под долгий ttl
+            const alpha = wave(this.life, this.ttl) * 0.0016;
             const color1 = `hsla(${this.hue},${this.saturation}%,60%,${alpha})`;
             const color2 = 'hsla(50,20%,20%,0)';
             const gradient = rCtx.createLinearGradient(this.start.x, this.start.y, this.end.x, this.end.y);
