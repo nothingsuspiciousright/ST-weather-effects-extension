@@ -41,10 +41,9 @@
 }
 
 /* Стили для кнопок */
-/* Стили для кнопок */
 .toggleWeather {
     pointer-events: auto;
-    touch-action: manipulation; /* Убирает задержку нажатия 300мс на смартфонах! */
+    touch-action: manipulation;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     opacity: 0.25;
@@ -61,7 +60,7 @@
     justify-content: center;
     align-items: center;
     text-align: center;
-    transition: opacity 0.1s ease, background-color 0.1s ease; /* Мгновенный отклик! */
+    transition: opacity 0.1s ease, background-color 0.1s ease;
     padding: 0;
     flex-shrink: 0;
 }
@@ -105,7 +104,50 @@
     z-index: 9998 !important;
 }
 
-/* Стили для снега */
+/* ================= СВЕТЛЯЧКИ НА GPU ================= */
+.st-firefly {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 50%;
+    background-color: #fddba3;
+    box-shadow: 0 0 8px 2px rgba(253, 219, 163, 0.85);
+    will-change: transform, opacity;
+    pointer-events: none;
+}
+
+@keyframes st-ff-pulse {
+    0%   { opacity: 0.25; }
+    100% { opacity: 0.95; }
+}
+
+/* ================= ЛУЧИ НА GPU ================= */
+.st-sun-ray {
+    position: absolute;
+    top: -5vh;
+    background: linear-gradient(to bottom, var(--ray-color), transparent);
+    filter: blur(4px);
+    transform-origin: top center;
+    will-change: transform, opacity;
+    pointer-events: none;
+    animation-name: st-ray-shimmer;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+@keyframes st-ray-shimmer {
+    0% {
+        opacity: 0.1;
+        transform: translate3d(0, 0, 0) rotate(-5deg);
+    }
+    100% {
+        opacity: 0.95;
+        transform: translate3d(var(--ray-drift), 0, 0) rotate(-5deg);
+    }
+}
+
+/* ================= СНЕГ ================= */
 .snowflake {
     position: absolute;
     top: -10px;
@@ -115,7 +157,7 @@
     border-radius: 50%;
 }
 
-/* Стили для дождя */
+/* ================= ДОЖДЬ ================= */
 .rain__drop {
     animation-delay: calc(var(--d) * 1s);
     animation-duration: calc(var(--s) * 2s);
@@ -138,103 +180,11 @@
     }
 }
 
-/* Стили для сакуры (Встроенный SVG-лепесток) */
+/* ================= САКУРА И ЛИСТЬЯ ================= */
 .petal {
     width: 18px;
     height: 18px;
     position: absolute;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23ffc0cb'/%3E%3Cstop offset='100%25' stop-color='%23ff8da1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' d='M15,0 C8,8 2,16 8,25 C11,29 15,30 15,26 C15,30 19,29 22,25 C28,16 22,8 15,0 Z'/%3E%3C/svg%3E");
     background-size: contain;
-    background-repeat: no-repeat;
-    filter: drop-shadow(0 0 2px rgba(255, 182, 193, 0.4));
-}
-
-/* Стили для осенних листьев (Японский красный клён Момидзи — 7 тонких лучей) */
-.leaf {
-    width: 28px;
-    height: 28px;
-    position: absolute;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='mg' cx='50%25' cy='55%25' r='55%25'%3E%3Cstop offset='0%25' stop-color='%23ff1e1e'/%3E%3Cstop offset='65%25' stop-color='%23cc0011'/%3E%3Cstop offset='100%25' stop-color='%237a0008'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath fill='url(%23mg)' d='M32,2 L36,15 L39,13 L36,24 L52,10 L47,22 L51,22 L41,31 L61,27 L49,36 L52,39 L39,40 L52,50 L39,46 L35,44 L33,46 C33,53 35,58 37,62 L34,62 C32,57 31,52 31,46 L29,44 L25,46 L12,50 L25,40 L12,39 L15,36 L3,27 L23,31 L13,22 L17,22 L12,10 L28,24 L25,13 L28,15 Z'/%3E%3Cpath stroke='%23520005' stroke-width='0.9' stroke-linecap='round' fill='none' opacity='0.65' d='M32,44 L32,10 M32,37 L49,14 M32,37 L15,14 M32,40 L56,29 M32,40 L8,29 M32,42 L48,48 M32,42 L16,48'/%3E%3C/svg%3E");
-    background-size: contain;
-    background-repeat: no-repeat;
-    filter: drop-shadow(0 0 4px rgba(220, 20, 30, 0.45));
-}
-
-@keyframes st-weather-fall {
-    0% {
-        transform: translateY(0) translateX(0) rotate(0deg);
-        opacity: 0;
-    }
-    10% {
-        opacity: 0.9;
-    }
-    50% {
-        transform: translateY(55vh) translateX(25px) rotate(360deg);
-        opacity: 0.9;
-    }
-    90% {
-        opacity: 0.9;
-    }
-    100% {
-        transform: translateY(115vh) translateX(-25px) rotate(720deg);
-        opacity: 0;
-    }
-}
-/* ================= АППАРАТНЫЙ ДЫМНЫЙ ТУМАН НА GPU (НЕ ЗАМИРАЕТ ПРИ ЛАГАХ ЧАТА) ================= */
-.st-smoke-puff {
-    position: absolute;
-    left: 0;
-    top: 0;
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-    will-change: transform;
-    pointer-events: none;
-    animation-name: st-smoke-drift;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
-}
-
-@keyframes st-smoke-drift {
-    0% {
-        transform: translate3d(105vw, var(--smoke-y), 0);
-    }
-    100% {
-        transform: translate3d(-90vw, var(--smoke-y), 0);
-    }
-}
-/* ================= АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ ТЕЛЕФОНОВ ================= */
-@media (max-width: 768px) {
-    .st-weather-buttons-container {
-        top: 44px;
-        left: 6px;
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .st-weather-menu-items {
-        flex-direction: column;
-        max-width: none;
-        max-height: 350px;
-        margin-top: 4px;
-        padding: 4px;
-        border-radius: 14px;
-        background-color: rgba(20, 20, 25, 0.65);
-        backdrop-filter: blur(4px);
-        transition: max-height 0.35s ease, opacity 0.25s ease, transform 0.3s ease;
-    }
-
-    .st-weather-menu-items.collapsed {
-        max-width: none;
-        max-height: 0;
-        padding: 0 4px;
-        transform: translateY(-10px);
-    }
-
-    .st-weather-divider {
-        width: 18px;
-        height: 1px;
-        margin: 3px 0;
-    }
-}
-
-
+    background-
