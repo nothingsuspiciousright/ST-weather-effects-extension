@@ -1,5 +1,5 @@
 jQuery(() => {
-    // 1. Встраиваем кнопки погоды и холсты в интерфейс SillyTavern
+    // 1. Встраиваем кнопки погоды и контейнеры слоёв в интерфейс SillyTavern
     const weatherHTML = `
         <div id="st-weather-buttons-container" class="st-weather-buttons-container">
             <button id="btn-weather-toggle-menu" class="toggleWeather" title="Свернуть/развернуть меню погоды">🌤️</button>
@@ -17,13 +17,13 @@ jQuery(() => {
             </div>
         </div>
 
-        <canvas id="fireflies-effect" class="st-weather-layer"></canvas>
+        <div id="fireflies-container" class="st-weather-layer"></div>
         <div id="snow-container" class="st-weather-layer"></div>
         <div id="rain-container" class="st-weather-layer"></div>
         <div id="petals-container" class="st-weather-layer"></div>
         <div id="leaves-container" class="st-weather-layer"></div>
         <div id="fog-container" class="st-weather-layer"></div>
-        <canvas id="rays-canvas" class="st-weather-layer"></canvas>
+        <div id="rays-container" class="st-weather-layer"></div>
     `;
 
     $('body').append(weatherHTML);
@@ -37,11 +37,10 @@ jQuery(() => {
                     <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
                 </div>
                 <div class="inline-drawer-content">
-                    <label class="checkbox_label" for="st-weather-enabled-checkbox" style="margin-top: 8px;">
+                    <label class="checkbox_label" for="st-weather-enabled-checkbox" style="margin-top: 8px; margin-bottom: 6px;">
                         <input id="st-weather-enabled-checkbox" type="checkbox" />
                         <span>Показывать кнопку погоды в интерфейсе</span>
                     </label>
-                  
                 </div>
             </div>
         </div>
@@ -49,9 +48,14 @@ jQuery(() => {
 
     $('#extensions_settings').append(settingsHTML);
 
+    // Динамические таблицы стилей для индивидуальных траекторий
     const snowStyleSheet = document.createElement('style');
     snowStyleSheet.id = 'st-snow-styles';
     document.head.appendChild(snowStyleSheet);
+
+    const firefliesStyleSheet = document.createElement('style');
+    firefliesStyleSheet.id = 'st-fireflies-styles';
+    document.head.appendChild(firefliesStyleSheet);
 
     // Переменные состояния
     let fogActive = false;
@@ -93,7 +97,6 @@ jQuery(() => {
 
     function updateLayerMode() {
         $('#btn-layer-mode').toggleClass('active-weather', overChatMode);
-        $('#st-weather-overchat-checkbox').prop('checked', overChatMode);
         $('.st-weather-layer').toggleClass('weather-over-chat', overChatMode);
         
         const titleText = overChatMode 
@@ -112,12 +115,6 @@ jQuery(() => {
         updateExtensionEnabled();
     });
 
-    $('#st-weather-overchat-checkbox').on('change', function() {
-        overChatMode = $(this).is(':checked');
-        localStorage.setItem('st_weather_over_chat', overChatMode);
-        updateLayerMode();
-    });
-
     $('#btn-weather-toggle-menu').on('click', function() {
         menuCollapsed = !menuCollapsed;
         updateMenuCollapse();
@@ -129,7 +126,64 @@ jQuery(() => {
         updateLayerMode();
     });
 
-    // ================= ДЫМНЫЙ ТУМАН НА GPU (НЕ ЗАМИРАЕТ ПРИ ФРИЗАХ ТАВЕРНЫ!) =================
+    // ================= СВЕТЛЯЧКИ НА GPU (ПЛАВНЫЕ, НЕ ЗАМИРАЮТ И НЕ МЕЛЬЧАЮТ!) =================
+    $('#btn-fireflies').on('click', function() {
+        firefliesActive = !firefliesActive;
+        $(this).toggleClass('active-weather', firefliesActive);
+        const container = document.getElementById('fireflies-container');
+        container.style.visibility = firefliesActive ? 'visible' : 'hidden';
+
+        if (firefliesActive) {
+            requestAnimationFrame(() => {
+                const fragment = document.createDocumentFragment();
+                const isMobile = window.innerWidth <= 768;
+                const total = isMobile ? 45 : 75;
+                let keyframesCSS = '';
+
+                for (let i = 0; i < total; i++) {
+                    const ff = document.createElement('div');
+                    ff.className = 'st-firefly';
+
+                    // Размер от 3px до 6px (с учётом мягкого свечения)
+                    const size = (2.5 + Math.random() * 3).toFixed(1);
+                    const x0 = Math.random() * 100;
+                    const y0 = Math.random() * 100;
+                    const x1 = x0 + (Math.random() * 30 - 15);
+                    const y1 = y0 + (Math.random() * 30 - 15);
+                    const x2 = x0 + (Math.random() * 30 - 15);
+                    const y2 = y0 + (Math.random() * 30 - 15);
+                    const x3 = x0 + (Math.random() * 30 - 15);
+                    const y3 = y0 + (Math.random() * 30 - 15);
+
+                    const moveDuration = (28 + Math.random() * 25).toFixed(1) + 's';
+                    const moveDelay = -(Math.random() * 40).toFixed(1) + 's';
+                    const pulseDuration = (3 + Math.random() * 4).toFixed(1) + 's';
+
+                    ff.style.width = `${size}px`;
+                    ff.style.height = `${size}px`;
+                    ff.style.animation = `st-ff-move-${i} ${moveDuration} ${moveDelay} ease-in-out infinite alternate, st-ff-pulse ${pulseDuration} ${moveDelay} ease-in-out infinite alternate`;
+
+                    fragment.appendChild(ff);
+
+                    keyframesCSS += `
+                        @keyframes st-ff-move-${i} {
+                            0%   { transform: translate3d(${x0}vw, ${y0}vh, 0); }
+                            33%  { transform: translate3d(${x1}vw, ${y1}vh, 0); }
+                            66%  { transform: translate3d(${x2}vw, ${y2}vh, 0); }
+                            100% { transform: translate3d(${x3}vw, ${y3}vh, 0); }
+                        }
+                    `;
+                }
+                firefliesStyleSheet.innerText = keyframesCSS;
+                container.appendChild(fragment);
+            });
+        } else {
+            container.innerHTML = '';
+            firefliesStyleSheet.innerText = '';
+        }
+    });
+
+    // ================= ДЫМНЫЙ ТУМАН НА GPU =================
     const fogContainer = document.getElementById('fog-container');
     let smokeDataUrls = null;
 
@@ -222,12 +276,11 @@ jQuery(() => {
                     puff.className = 'st-smoke-puff';
                     const spriteUrl = smokeDataUrls[i % smokeDataUrls.length];
 
-                    // Ширина < 100vw, поэтому тема ST никогда не обрежет блок и не создаст шов!
-                    const w = 55 + Math.random() * 35; // 55vw..90vw
-                    const h = 40 + Math.random() * 40; // 40vh..80vh
-                    const y = 10 + Math.random() * 65; // 10vh..75vh
-                    const duration = 55 + Math.random() * 45; // Очень медленное течение (55..100 сек)
-                    const delay = -(Math.random() * duration); // Сразу распределены по всему экрану
+                    const w = 55 + Math.random() * 35;
+                    const h = 40 + Math.random() * 40;
+                    const y = 10 + Math.random() * 65;
+                    const duration = 55 + Math.random() * 45;
+                    const delay = -(Math.random() * duration);
                     const opacity = 0.24 + Math.random() * 0.22;
 
                     puff.style.width = `${w}vw`;
@@ -247,7 +300,7 @@ jQuery(() => {
         }
     });
 
-    // ================= ДОЖДЬ (ЧЕРЕЗ DOCUMENT FRAGMENT БЕЗ ФРИЗОВ) =================
+    // ================= ДОЖДЬ =================
     $('#btn-rain').on('click', function() {
         rainActive = !rainActive;
         $(this).toggleClass('active-weather', rainActive);
@@ -272,7 +325,7 @@ jQuery(() => {
         }
     });
 
-    // ================= СНЕГ (ЧЕРЕЗ DOCUMENT FRAGMENT БЕЗ ФРИЗОВ) =================
+    // ================= СНЕГ =================
     $('#btn-snow').on('click', function() {
         snowflakesActive = !snowflakesActive;
         $(this).toggleClass('active-weather', snowflakesActive);
@@ -367,124 +420,44 @@ jQuery(() => {
         }
     });
 
-    // ================= ЛУЧИ =================
-    const rCanvas = document.getElementById('rays-canvas');
-    const rCtx = rCanvas.getContext('2d');
-    const osCanvas = document.createElement('canvas');
-    const osCtx = osCanvas.getContext('2d');
-    let raysObjects = [];
-    const numRays = 30;
-    let raysAnimationId = null;
-
-    function wave(t, a) {
-        return Math.abs((t + a / 2) % a - a / 2);
-    }
-
-    class Ray {
-        constructor() {
-            this.ctx = osCtx;
-            this.angle = 85 * Math.PI / 180;
-            this.init();
-        }
-        init() {
-            this.velocity = 0.25 - Math.random() * 0.5;
-            this.len = rCanvas.height / 2 + Math.random() * (rCanvas.height / 2);
-            this.start = { x: Math.random() * (rCanvas.width + 100) - 50, y: 0 };
-            this.end = {
-                x: this.start.x + this.len * Math.cos(this.angle),
-                y: this.start.y + this.len * Math.sin(this.angle)
-            };
-            this.ttl = 100 + Math.random() * 200;
-            this.life = 0;
-            this.width = 0.5 + Math.random() * 4;
-            this.hue = Math.round(45 + Math.random() * 15).toString();
-            this.saturation = Math.round(20 + Math.random() * 40).toString();
-        }
-        color() {
-            const alpha = wave(this.life, this.ttl) * 0.005;
-            const color1 = `hsla(${this.hue},${this.saturation}%,60%,${alpha})`;
-            const color2 = 'hsla(50,20%,20%,0)';
-            const gradient = rCtx.createLinearGradient(this.start.x, this.start.y, this.end.x, this.end.y);
-            gradient.addColorStop(0, color1);
-            gradient.addColorStop(1, color2);
-            return gradient;
-        }
-        draw() {
-            this.ctx.beginPath();
-            this.ctx.strokeStyle = this.color();
-            this.ctx.lineWidth = this.width;
-            this.ctx.moveTo(this.start.x, this.start.y);
-            this.ctx.lineTo(this.end.x, this.end.y);
-            this.ctx.stroke();
-            this.ctx.closePath();
-        }
-        update() {
-            if (this.life > this.ttl) this.init();
-            this.life++;
-            this.start.x += this.velocity;
-            this.end.x += this.velocity;
-        }
-    }
-
-    function createRays() {
-        raysObjects = [];
-        for (let i = 0; i < numRays; i++) {
-            raysObjects.push(new Ray());
-        }
-    }
-
-    function renderRays() {
-        osCtx.clearRect(0, 0, rCanvas.width, rCanvas.height);
-        osCtx.shadowBlur = 30;
-        osCtx.shadowColor = "white";
-        osCtx.globalCompositeOperation = "lighter";
-        for (let i = 0; i < raysObjects.length; i++) {
-            raysObjects[i].update();
-            raysObjects[i].draw();
-        }
-        rCtx.clearRect(0, 0, rCanvas.width, rCanvas.height);
-        rCtx.drawImage(osCanvas, 0, 0);
-    }
-
-    function loopRays() {
-        renderRays();
-        raysAnimationId = requestAnimationFrame(loopRays);
-    }
-
+    // ================= ЛУЧИ НА GPU (НЕ ЗАМИРАЮТ ПРИ ЛАГАХ ЧАТА!) =================
     $('#btn-rays').on('click', function() {
         raysActive = !raysActive;
         $(this).toggleClass('active-weather', raysActive);
+        const raysContainer = document.getElementById('rays-container');
+        raysContainer.style.visibility = raysActive ? 'visible' : 'hidden';
+
         if (raysActive) {
-            rCanvas.style.visibility = 'visible';
-            if (!raysAnimationId) loopRays();
+            requestAnimationFrame(() => {
+                const fragment = document.createDocumentFragment();
+                const numRays = 28;
+                for (let i = 0; i < numRays; i++) {
+                    const ray = document.createElement('div');
+                    ray.className = 'st-sun-ray';
+
+                    const x = Math.random() * 110 - 5; // -5vw .. 105vw
+                    const len = 55 + Math.random() * 45; // 55vh .. 100vh
+                    const width = 2 + Math.random() * 6; // 2px .. 8px
+                    const hue = Math.round(45 + Math.random() * 15);
+                    const sat = Math.round(25 + Math.random() * 40);
+                    const duration = (6 + Math.random() * 8).toFixed(1) + 's';
+                    const delay = -(Math.random() * 12).toFixed(1) + 's';
+                    const drift = (Math.random() * 8 - 4).toFixed(1) + 'vw';
+
+                    ray.style.left = `${x}vw`;
+                    ray.style.height = `${len}vh`;
+                    ray.style.width = `${width}px`;
+                    ray.style.setProperty('--ray-color', `hsla(${hue}, ${sat}%, 65%, 0.32)`);
+                    ray.style.setProperty('--ray-drift', drift);
+                    ray.style.animationDuration = `${duration}`;
+                    ray.style.animationDelay = `${delay}`;
+
+                    fragment.appendChild(ray);
+                }
+                raysContainer.appendChild(fragment);
+            });
         } else {
-            cancelAnimationFrame(raysAnimationId);
-            raysAnimationId = null;
-            rCanvas.style.visibility = 'hidden';
+            raysContainer.innerHTML = '';
         }
     });
-
-    // ================= ЗАЩИЩЕННЫЙ РЕСАЙЗ ОКНА (БЕЗ СПАМА НА МОБИЛКАХ) =================
-    let lastWidth = 0;
-    let resizeTimeout = null;
-
-    function updateCanvasSizes() {
-        lastWidth = window.innerWidth;
-        firefliesCanvas.width = window.innerWidth;
-        firefliesCanvas.height = window.innerHeight;
-        rCanvas.width = window.innerWidth;
-        rCanvas.height = window.innerHeight;
-        osCanvas.width = window.innerWidth;
-        osCanvas.height = window.innerHeight;
-    }
-
-    window.addEventListener('resize', () => {
-        // Игнорируем мелкие срабатывания мобильной адресной строки/клавиатуры, если ширина не менялась
-        if (Math.abs(window.innerWidth - lastWidth) < 20) return;
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(updateCanvasSizes, 250);
-    });
-
-    updateCanvasSizes();
-    createRays();
 });
