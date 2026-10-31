@@ -12,6 +12,8 @@ jQuery(() => {
                 <button id="btn-petals" class="toggleWeather" title="Сакура">🌸</button>
                 <button id="btn-rays" class="toggleWeather" title="Лучи">🌟</button>
                 <button id="btn-leaves" class="toggleWeather" title="Листья">🍁</button>
+                <button id="btn-embers" class="toggleWeather" title="Искры и пепел">🔥</button>
+                <button id="btn-vhs" class="toggleWeather" title="Эффект старой плёнки / VHS">📼</button>
                 <div class="st-weather-divider"></div>
                 <button id="btn-layer-mode" class="toggleWeather" title="Режим: Только на фоне">🔀</button>
             </div>
@@ -24,6 +26,12 @@ jQuery(() => {
         <div id="leaves-container" class="st-weather-layer"></div>
         <canvas id="fog-canvas" class="st-weather-layer"></canvas>
         <canvas id="rays-canvas" class="st-weather-layer"></canvas>
+        <canvas id="embers-canvas" class="st-weather-layer"></canvas>
+        <div id="vhs-container" class="st-weather-layer">
+            <div class="st-vhs-vignette"></div>
+            <div class="st-vhs-scanlines"></div>
+            <div class="st-vhs-glitch"></div>
+        </div>
     `;
 
     $('body').append(weatherHTML);
@@ -60,6 +68,8 @@ jQuery(() => {
     let petalsActive = false;
     let raysActive = false;
     let leavesActive = false;
+    let embersActive = false;
+    let vhsActive = false;
     
     let extensionEnabled = localStorage.getItem('st_weather_enabled') !== 'false';
     let menuCollapsed = true;
@@ -73,6 +83,8 @@ jQuery(() => {
         if (petalsActive) $('#btn-petals').trigger('click');
         if (raysActive) $('#btn-rays').trigger('click');
         if (leavesActive) $('#btn-leaves').trigger('click');
+        if (embersActive) $('#btn-embers').trigger('click');
+        if (vhsActive) $('#btn-vhs').trigger('click');
     }
 
     function updateExtensionEnabled() {
@@ -121,7 +133,7 @@ jQuery(() => {
         updateLayerMode();
     });
 
-    // ================= ДЫМНЫЙ ТУМАН НА CANVAS (БЕЗ ШВОВ И ПЛИТОК!) =================
+    // ================= ДЫМНЫЙ ТУМАН НА CANVAS =================
     const fogCanvas = document.getElementById('fog-canvas');
     const fogCtx = fogCanvas.getContext('2d');
     let fogAnimationId = null;
@@ -267,7 +279,7 @@ jQuery(() => {
         }
     });
 
-    // ================= СВЕТЛЯЧКИ НА CANVAS (ПЛАВНЫЕ И МЕДЛЕННЫЕ) =================
+    // ================= СВЕТЛЯЧКИ НА CANVAS =================
     const firefliesCanvas = document.getElementById('fireflies-effect');
     const fCtx = firefliesCanvas.getContext('2d');
     const fireflies = [];
@@ -405,7 +417,7 @@ jQuery(() => {
         }
     });
 
-    // ================= САКУРА (ЗАЩИЩЕНА ОТ ТЕМЫ ST ЧЕРЕЗ !important) =================
+    // ================= САКУРА =================
     $('#btn-petals').on('click', function() {
         petalsActive = !petalsActive;
         $(this).toggleClass('active-weather', petalsActive);
@@ -433,7 +445,7 @@ jQuery(() => {
         }
     });
 
-    // ================= ОСЕННИЕ ЛИСТЬЯ МОМИДЗИ (ЗАЩИЩЕНЫ ОТ ТЕМЫ ST ЧЕРЕЗ !important) =================
+    // ================= ОСЕННИЕ ЛИСТЬЯ МОМИДЗИ =================
     $('#btn-leaves').on('click', function() {
         leavesActive = !leavesActive;
         $(this).toggleClass('active-weather', leavesActive);
@@ -461,7 +473,7 @@ jQuery(() => {
         }
     });
 
-    // ================= ОРИГИНАЛЬНЫЕ ЛУЧИ НА CANVAS =================
+    // ================= МЕДЛЕННЫЕ ЛУЧИ НА CANVAS =================
     const rCanvas = document.getElementById('rays-canvas');
     const rCtx = rCanvas.getContext('2d');
     const osCanvas = document.createElement('canvas');
@@ -481,7 +493,6 @@ jQuery(() => {
             this.init();
         }
         init() {
-            // Скорость движения в стороны в 3.5 раза медленнее
             this.velocity = 0.07 - Math.random() * 0.14;
             this.len = rCanvas.height / 2 + Math.random() * (rCanvas.height / 2);
             this.start = { x: Math.random() * (rCanvas.width + 100) - 50, y: 0 };
@@ -489,7 +500,6 @@ jQuery(() => {
                 x: this.start.x + this.len * Math.cos(this.angle),
                 y: this.start.y + this.len * Math.sin(this.angle)
             };
-            // Время жизни луча в 3 раза дольше (очень плавное разгорание и угасание)
             this.ttl = 400 + Math.random() * 500;
             this.life = 0;
             this.width = 0.5 + Math.random() * 4;
@@ -497,7 +507,6 @@ jQuery(() => {
             this.saturation = Math.round(20 + Math.random() * 40).toString();
         }
         color() {
-            // Скорректированный множитель яркости под долгий ttl
             const alpha = wave(this.life, this.ttl) * 0.0016;
             const color1 = `hsla(${this.hue},${this.saturation}%,60%,${alpha})`;
             const color2 = 'hsla(50,20%,20%,0)';
@@ -561,29 +570,51 @@ jQuery(() => {
         }
     });
 
-    // ================= ЗАЩИЩЕННЫЙ РЕСАЙЗ ОКНА =================
-    let lastWidth = 0;
-    let resizeTimeout = null;
+    // ================= ИСКРЫ И ПЕПЕЛ ОТ КОСТРА / ПОЖАРА (EMBERS & ASH) =================
+    const eCanvas = document.getElementById('embers-canvas');
+    const eCtx = eCanvas.getContext('2d');
+    const embersList = [];
+    let embersAnimationId = null;
 
-    function updateCanvasSizes() {
-        lastWidth = window.innerWidth;
-        firefliesCanvas.width = window.innerWidth;
-        firefliesCanvas.height = window.innerHeight;
-        fogCanvas.width = window.innerWidth;
-        fogCanvas.height = window.innerHeight;
-        rCanvas.width = window.innerWidth;
-        rCanvas.height = window.innerHeight;
-        osCanvas.width = window.innerWidth;
-        osCanvas.height = window.innerHeight;
-        if (fogActive) initSmokeClouds();
-    }
+    class EmberParticle {
+        constructor(startAnywhere = false) {
+            this.reset(startAnywhere);
+        }
+        reset(startAnywhere = false) {
+            this.x = Math.random() * eCanvas.width;
+            this.y = startAnywhere ? Math.random() * eCanvas.height : eCanvas.height + 10 + Math.random() * 40;
+            // 65% — тлеющие огненные искры, 35% — кружащиеся хлопья серого пепла
+            this.isAsh = Math.random() < 0.35;
+            this.size = this.isAsh ? (1.5 + Math.random() * 2.2) : (1.0 + Math.random() * 2.2);
+            // Медленный подъём вверх в тёплом воздухе
+            this.vy = -(0.3 + Math.random() * 0.65);
+            this.vx = (Math.random() - 0.5) * 0.4;
+            this.swaySpeed = 0.01 + Math.random() * 0.025;
+            this.swayAmp = 0.25 + Math.random() * 0.55;
+            this.phase = Math.random() * Math.PI * 2;
+            this.age = 0;
+            this.maxLife = 350 + Math.random() * 450;
+            // Цвет искры: от ярко-золотого до багрово-оранжевого
+            this.hue = Math.round(12 + Math.random() * 32);
+        }
+        update() {
+            this.age++;
+            this.phase += this.swaySpeed;
+            this.x += this.vx + Math.sin(this.phase) * this.swayAmp;
+            this.y += this.vy;
 
-    window.addEventListener('resize', () => {
-        if (Math.abs(window.innerWidth - lastWidth) < 20) return;
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(updateCanvasSizes, 250);
-    });
+            if (this.age >= this.maxLife || this.y < -20 || this.x < -20 || this.x > eCanvas.width + 20) {
+                this.reset(false);
+            }
+        }
+        draw() {
+            let alpha = 0.9;
+            if (this.age < 50) alpha = (this.age / 50) * 0.9;
+            else if (this.age > this.maxLife - 80) alpha = ((this.maxLife - this.age) / 80) * 0.9;
 
-    updateCanvasSizes();
-    createRays();
-});
+            eCtx.save();
+            eCtx.beginPath();
+            if (this.isAsh) {
+                // Хлопья пепла (тёмно-серые, чуть вытянутые, без свечения)
+                eCtx.ellipse(this.x, this.y, this.size, this.size * 0.65, this.phase, 0, Math.PI * 2);
+                eCtx.fillStyle = `rgba(160, 155, 150, ${Math.max(0
