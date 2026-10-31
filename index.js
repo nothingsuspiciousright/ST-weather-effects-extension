@@ -617,4 +617,93 @@ jQuery(() => {
             if (this.isAsh) {
                 // Хлопья пепла (тёмно-серые, чуть вытянутые, без свечения)
                 eCtx.ellipse(this.x, this.y, this.size, this.size * 0.65, this.phase, 0, Math.PI * 2);
-                eCtx.fillStyle = `rgba(160, 155, 150, ${Math.max(0
+                eCtx.fillStyle = `rgba(160, 155, 150, ${Math.max(0, alpha * 0.55)})`;
+                eCtx.fill();
+            } else {
+                // Тлеющие угольки (мерцают и светятся огнём!)
+                const flicker = 0.65 + 0.35 * Math.sin(this.age * 0.12 + this.phase);
+                const finalAlpha = Math.max(0, alpha * flicker);
+                eCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                eCtx.fillStyle = `hsla(${this.hue}, 100%, 62%, ${finalAlpha})`;
+                eCtx.shadowBlur = 10;
+                eCtx.shadowColor = `hsla(${this.hue}, 100%, 50%, ${finalAlpha})`;
+                eCtx.fill();
+            }
+            eCtx.restore();
+        }
+    }
+
+    function initEmbers() {
+        embersList.length = 0;
+        const total = window.innerWidth <= 768 ? 55 : 95;
+        for (let i = 0; i < total; i++) {
+            embersList.push(new EmberParticle(true));
+        }
+    }
+
+    function loopEmbers() {
+        eCtx.clearRect(0, 0, eCanvas.width, eCanvas.height);
+
+        // Лёгкое тёплое зарево от огня у самого низа экрана
+        const hearthGrad = eCtx.createLinearGradient(0, eCanvas.height, 0, eCanvas.height * 0.72);
+        hearthGrad.addColorStop(0, 'rgba(255, 65, 10, 0.10)');
+        hearthGrad.addColorStop(1, 'rgba(255, 65, 10, 0)');
+        eCtx.fillStyle = hearthGrad;
+        eCtx.fillRect(0, eCanvas.height * 0.72, eCanvas.width, eCanvas.height * 0.28);
+
+        for (let i = 0; i < embersList.length; i++) {
+            embersList[i].update();
+            embersList[i].draw();
+        }
+        embersAnimationId = requestAnimationFrame(loopEmbers);
+    }
+
+    $('#btn-embers').on('click', function() {
+        embersActive = !embersActive;
+        $(this).toggleClass('active-weather', embersActive);
+        if (embersActive) {
+            eCanvas.style.visibility = 'visible';
+            if (embersList.length === 0) initEmbers();
+            if (!embersAnimationId) loopEmbers();
+        } else {
+            cancelAnimationFrame(embersAnimationId);
+            embersAnimationId = null;
+            eCanvas.style.visibility = 'hidden';
+        }
+    });
+
+    // ================= ЭФФЕКТ СТАРОЙ ПЛЁНКИ / VHS =================
+    $('#btn-vhs').on('click', function() {
+        vhsActive = !vhsActive;
+        $(this).toggleClass('active-weather', vhsActive);
+        $('#vhs-container').css('visibility', vhsActive ? 'visible' : 'hidden');
+    });
+
+    // ================= ЗАЩИЩЕННЫЙ РЕСАЙЗ ОКНА =================
+    let lastWidth = 0;
+    let resizeTimeout = null;
+
+    function updateCanvasSizes() {
+        lastWidth = window.innerWidth;
+        firefliesCanvas.width = window.innerWidth;
+        firefliesCanvas.height = window.innerHeight;
+        fogCanvas.width = window.innerWidth;
+        fogCanvas.height = window.innerHeight;
+        rCanvas.width = window.innerWidth;
+        rCanvas.height = window.innerHeight;
+        osCanvas.width = window.innerWidth;
+        osCanvas.height = window.innerHeight;
+        eCanvas.width = window.innerWidth;
+        eCanvas.height = window.innerHeight;
+        if (fogActive) initSmokeClouds();
+    }
+
+    window.addEventListener('resize', () => {
+        if (Math.abs(window.innerWidth - lastWidth) < 20) return;
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(updateCanvasSizes, 250);
+    });
+
+    updateCanvasSizes();
+    createRays();
+});
