@@ -895,12 +895,21 @@ jQuery(() => {
         }
     }
 
-    // При переключении галочки сразу принудительно сканируем чат!
+// При переключении галочки: если включили — сканируем чат, если выключили — гасим всю авто-погоду!
     $('#st-weather-autoweather-checkbox').off('change').on('change', function() {
         autoWeatherEnabled = $(this).is(':checked');
         localStorage.setItem('st_weather_auto', autoWeatherEnabled);
         if (autoWeatherEnabled) {
             checkLastMessageForWeather(true);
+        } else {
+            // Выключаем все эффекты, которые были запущены авто-погодой
+            for (const item of weatherTriggers) {
+                if (autoActivatedEffects.has(item.id) && item.isActive()) {
+                    $(item.btn).trigger('click', [true]);
+                }
+            }
+            autoActivatedEffects.clear();
+            lastProcessedSignature = '';
         }
     });
 
