@@ -780,91 +780,101 @@ jQuery(() => {
         }
     });
 
-  // ================= 🤖 SMART AUTO-WEATHER (С АВТО-ЗАТУХАНИЕМ ПРИ СМЕНЕ СЦЕНЫ) =================
+ // ================= 🤖 SMART AUTO-WEATHER (РАБОТАЕТ И С РУССКИМ, И С АНГЛИЙСКИМ!) =================
+    // Универсальная функция создания регулярки, которая (в отличие от \b) понимает и кириллицу, и латиницу!
+    function makeWeatherRegex(words) {
+        return new RegExp(`(?:^|[^a-zA-Zа-яА-ЯёЁ0-9])(${words})(?=$|[^a-zA-Zа-яА-ЯёЁ0-9])`, 'i');
+    }
+
     const weatherTriggers = [
         {
             id: 'rain',
             btn: '#btn-rain',
             isActive: () => rainActive,
-            regex: /\b(rain|raining|raindrops|downpour|drizzle|pouring|thunderstorm|stormy|дождь|дождя|дождем|ливень|ливня|морось|гроза)\b/i,
-            stopRegex: /\b(rain stopped|stops raining|went inside|stepped inside|indoors|дождь прекратился|дождь закончился|зашли внутрь|вошли в дом)\b/i
+            regex: makeWeatherRegex('rain|raining|raindrops|downpour|drizzle|pouring|thunderstorm|stormy|дождь|дождя|дождем|дождём|дождли[а-я]+|ливень|ливня|морось|гроза'),
+            stopRegex: makeWeatherRegex('rain stopped|stops raining|дождь прекратился|дождь закончился|дождь стих')
         },
         {
             id: 'snow',
             btn: '#btn-snow',
             isActive: () => snowflakesActive,
-            regex: /\b(snow|snowing|snowflakes|blizzard|snowfall|frosty|снег|снега|снегопад|снежинки|метель|вьюга)\b/i,
-            stopRegex: /\b(snow stopped|went inside|stepped inside|indoors|снег прекратился|метель утихла|зашли внутрь)\b/i
+            regex: makeWeatherRegex('snow|snowing|snowflakes|blizzard|snowfall|frosty|снег|снега|снегом|снегопад|снежинк[а-я]+|метель|вьюга'),
+            stopRegex: makeWeatherRegex('snow stopped|снег прекратился|снег закончился|метель утихла')
         },
         {
             id: 'fog',
             btn: '#btn-fog',
             isActive: () => fogActive,
-            regex: /\b(fog|foggy|mist|misty|haze|smoke|smoking|cigarette|cigar|exhales|inhales|туман|тумана|дым|дымка|сигарет[аыуой]|закурил|затянулся)\b/i,
-            stopRegex: /\b(puts out|stubs out|crushes the cigarette|flicks the cigarette|smoke clears|fog clears|потушил|затушил|выбросил окурок|дым рассеялся|туман рассеялся)\b/i
+            regex: makeWeatherRegex('fog|foggy|mist|misty|haze|hazy|smoke|smoking|cigarette|cigarettes|cigar|inhaling|exhaling|inhales|exhales|lighter|ashtray|туман|тумана|тумане|туманн[а-я]+|дым|дыма|дымом|дымк[а-я]+|сигарет[а-я]*|папирос[а-я]*|закури[а-я]*|курит|затянул[а-я]*|пепельниц[а-я]*'),
+            stopRegex: makeWeatherRegex('puts out|stubs out|crushes the cigarette|smoke clears|fog clears|потушил|затушил|выбросил окурок|дым рассеялся|туман рассеялся')
         },
         {
             id: 'embers',
             btn: '#btn-embers',
             isActive: () => embersActive,
-            regex: /\b(embers|ash|ashes|sparks|flames|campfire|bonfire|inferno|burning|blaze|искры|пепел|пламя|костер|костра|пожар|угли)\b/i,
-            stopRegex: /\b(fire went out|extinguished|flames died|огонь погас|костер потух|потушили)\b/i
+            regex: makeWeatherRegex('embers|ash|ashes|sparks|flames|campfire|bonfire|inferno|burning|blaze|искры|искр|пепел|пепла|пламя|костер|костёр|костра|пожар|угли|углей'),
+            stopRegex: makeWeatherRegex('fire went out|extinguished|flames died|огонь погас|костер потух|костёр потух')
         },
         {
             id: 'petals',
             btn: '#btn-petals',
             isActive: () => petalsActive,
-            regex: /\b(sakura|cherry blossom|cherry blossoms|pink petals|сакура|сакуры|лепестки сакуры)\b/i
+            regex: makeWeatherRegex('sakura|cherry blossom|cherry blossoms|pink petals|сакур[а-я]+|лепестк[а-я]+ сакуры')
         },
         {
             id: 'leaves',
             btn: '#btn-leaves',
             isActive: () => leavesActive,
-            regex: /\b(autumn leaves|fallen leaves|falling leaves|maple leaves|momiji|осенние листья|листопад|кленовые листья|момидзи)\b/i
+            regex: makeWeatherRegex('autumn leaves|fallen leaves|falling leaves|maple leaves|momiji|осенние листья|листопад|кленовые листья|момидзи')
         },
         {
             id: 'rays',
             btn: '#btn-rays',
             isActive: () => raysActive,
-            regex: /\b(sunbeams|sunrays|golden rays|shafts of light|morning sun|солнечные лучи|лучи солнца)\b/i
+            regex: makeWeatherRegex('sunbeams|sunrays|golden rays|shafts of light|morning sun|sunlight|солнечные лучи|лучи солнца|солнечный свет')
         },
         {
             id: 'fireflies',
             btn: '#btn-fireflies',
             isActive: () => firefliesActive,
-            regex: /\b(fireflies|firefly|glowworms|светлячки|светлячок|светлячков)\b/i
+            regex: makeWeatherRegex('fireflies|firefly|glowworms|светляч[а-я]+')
         }
     ];
 
     let lastProcessedSignature = '';
 
-    function checkLastMessageForWeather() {
+    function checkLastMessageForWeather(forceCheck = false) {
         if (!extensionEnabled || !autoWeatherEnabled) return;
 
-        // Берём последние 2 сообщения чата (чтобы эффект держался 2 хода, а потом сам гас, если тема сменилась!)
-        const recentMessages = $('#chat .mes').slice(-2);
+        // Берем все сообщения чата, но отфильтровываем сообщения с Proxy Error / техническими ошибками API!
+        const validMessages = $('#chat .mes').filter(function() {
+            const txt = $(this).find('.mes_text').text();
+            return txt && !txt.includes('Proxy error') && !txt.includes('HTTP 402') && !txt.includes('No OpenAI keys');
+        });
+
+        // Берём последние 3 реальных сюжетных сообщения
+        const recentMessages = validMessages.slice(-3);
         if (!recentMessages.length) return;
 
         const lastMesText = recentMessages.last().find('.mes_text').text().trim();
         const combinedText = recentMessages.map((_, el) => $(el).find('.mes_text').text().trim()).get().join(' \n ');
 
-        if (!combinedText || combinedText === lastProcessedSignature) return;
+        if (!combinedText) return;
+        if (!forceCheck && combinedText === lastProcessedSignature) return;
         lastProcessedSignature = combinedText;
 
         const matchedEffects = new Set();
 
         for (const item of weatherTriggers) {
-            // Если в самом последнем сообщении явно сказано, что действие прекратилось (например, потушил сигарету)
             if (item.stopRegex && item.stopRegex.test(lastMesText)) {
                 continue;
             }
-            // Иначе проверяем, упоминался ли эффект в последних 2 сообщениях
             if (item.regex.test(combinedText)) {
                 matchedEffects.add(item.id);
             }
         }
 
-        // 1. Выключаем ВСЕ авто-эффекты, которые больше не упоминаются в последних 2 сообщениях!
+        // 1. Выключаем старые авто-эффекты, которые больше не упоминаются в последних 3 сообщениях
         for (const item of weatherTriggers) {
             if (autoActivatedEffects.has(item.id) && !matchedEffects.has(item.id)) {
                 if (item.isActive()) {
@@ -885,12 +895,21 @@ jQuery(() => {
         }
     }
 
+    // При переключении галочки сразу принудительно сканируем чат!
+    $('#st-weather-autoweather-checkbox').off('change').on('change', function() {
+        autoWeatherEnabled = $(this).is(':checked');
+        localStorage.setItem('st_weather_auto', autoWeatherEnabled);
+        if (autoWeatherEnabled) {
+            checkLastMessageForWeather(true);
+        }
+    });
+
     // Наблюдатель за чатом
     let chatObserverTimeout = null;
     const chatObserver = new MutationObserver(() => {
         if (!extensionEnabled || !autoWeatherEnabled) return;
         clearTimeout(chatObserverTimeout);
-        chatObserverTimeout = setTimeout(checkLastMessageForWeather, 1200);
+        chatObserverTimeout = setTimeout(() => checkLastMessageForWeather(false), 1000);
     });
 
     const waitForChat = setInterval(() => {
@@ -898,7 +917,7 @@ jQuery(() => {
         if (chatEl) {
             clearInterval(waitForChat);
             chatObserver.observe(chatEl, { childList: true, subtree: true, characterData: true });
-            checkLastMessageForWeather();
+            checkLastMessageForWeather(true);
         }
     }, 1000);
     // ================= ЗАЩИЩЕННЫЙ РЕСАЙЗ ОКНА =================
