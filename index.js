@@ -41,9 +41,13 @@ jQuery(() => {
                     <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
                 </div>
                 <div class="inline-drawer-content">
-                    <label class="checkbox_label" for="st-weather-enabled-checkbox" style="margin-top: 8px; margin-bottom: 6px;">
+                    <label class="checkbox_label" for="st-weather-enabled-checkbox" style="margin-top: 8px;">
                         <input id="st-weather-enabled-checkbox" type="checkbox" />
                         <span>Показывать кнопку погоды в интерфейсе</span>
+                    </label>
+                    <label class="checkbox_label" for="st-weather-autoweather-checkbox" style="margin-top: 6px; margin-bottom: 6px;" title="Автоматически включает дождь, снег, дым, искры и другие эффекты по ключевым словам в последнем сообщении чата">
+                        <input id="st-weather-autoweather-checkbox" type="checkbox" />
+                        <span>🤖 Smart Auto-Weather (Авто-погода по тексту чата)</span>
                     </label>
                 </div>
             </div>
@@ -68,8 +72,12 @@ jQuery(() => {
     let vhsActive = false;
     
     let extensionEnabled = localStorage.getItem('st_weather_enabled') !== 'false';
+    let autoWeatherEnabled = localStorage.getItem('st_weather_auto') === 'true';
     let menuCollapsed = true;
     let overChatMode = localStorage.getItem('st_weather_over_chat') === 'true';
+
+    // Хранит список эффектов, которые были включены автоматически (чтобы плавно сменять их)
+    const autoActivatedEffects = new Set();
 
     function stopAllWeatherEffects() {
         if (fogActive) $('#btn-fog').trigger('click');
@@ -81,6 +89,7 @@ jQuery(() => {
         if (leavesActive) $('#btn-leaves').trigger('click');
         if (embersActive) $('#btn-embers').trigger('click');
         if (vhsActive) $('#btn-vhs').trigger('click');
+        autoActivatedEffects.clear();
     }
 
     function updateExtensionEnabled() {
@@ -91,6 +100,10 @@ jQuery(() => {
             stopAllWeatherEffects();
             $('#st-weather-buttons-container').hide();
         }
+    }
+
+    function updateAutoWeatherCheckbox() {
+        $('#st-weather-autoweather-checkbox').prop('checked', autoWeatherEnabled);
     }
 
     function updateMenuCollapse() {
@@ -111,11 +124,20 @@ jQuery(() => {
     updateMenuCollapse();
     updateLayerMode();
     updateExtensionEnabled();
+    updateAutoWeatherCheckbox();
 
     $('#st-weather-enabled-checkbox').on('change', function() {
         extensionEnabled = $(this).is(':checked');
         localStorage.setItem('st_weather_enabled', extensionEnabled);
         updateExtensionEnabled();
+    });
+
+    $('#st-weather-autoweather-checkbox').on('change', function() {
+        autoWeatherEnabled = $(this).is(':checked');
+        localStorage.setItem('st_weather_auto', autoWeatherEnabled);
+        if (autoWeatherEnabled) {
+            checkLastMessageForWeather();
+        }
     });
 
     $('#btn-weather-toggle-menu').on('click', function() {
@@ -259,7 +281,8 @@ jQuery(() => {
         fogAnimationId = requestAnimationFrame(loopFog);
     }
 
-    $('#btn-fog').on('click', function() {
+    $('#btn-fog').on('click', function(e, isAuto) {
+        if (!isAuto) autoActivatedEffects.delete('fog');
         fogActive = !fogActive;
         $(this).toggleClass('active-weather', fogActive);
         if (fogActive) {
@@ -334,7 +357,8 @@ jQuery(() => {
         firefliesAnimationId = requestAnimationFrame(loopFireflies);
     }
 
-    $('#btn-fireflies').on('click', function() {
+    $('#btn-fireflies').on('click', function(e, isAuto) {
+        if (!isAuto) autoActivatedEffects.delete('fireflies');
         firefliesActive = !firefliesActive;
         $(this).toggleClass('active-weather', firefliesActive);
         if (firefliesActive) {
@@ -348,7 +372,8 @@ jQuery(() => {
     });
 
     // ================= ДОЖДЬ =================
-    $('#btn-rain').on('click', function() {
+    $('#btn-rain').on('click', function(e, isAuto) {
+        if (!isAuto) autoActivatedEffects.delete('rain');
         rainActive = !rainActive;
         $(this).toggleClass('active-weather', rainActive);
         const rainContainer = document.getElementById('rain-container');
@@ -373,7 +398,8 @@ jQuery(() => {
     });
 
     // ================= СНЕГ =================
-    $('#btn-snow').on('click', function() {
+    $('#btn-snow').on('click', function(e, isAuto) {
+        if (!isAuto) autoActivatedEffects.delete('snow');
         snowflakesActive = !snowflakesActive;
         $(this).toggleClass('active-weather', snowflakesActive);
         const snowContainer = document.getElementById('snow-container');
@@ -414,7 +440,8 @@ jQuery(() => {
     });
 
     // ================= САКУРА =================
-    $('#btn-petals').on('click', function() {
+    $('#btn-petals').on('click', function(e, isAuto) {
+        if (!isAuto) autoActivatedEffects.delete('petals');
         petalsActive = !petalsActive;
         $(this).toggleClass('active-weather', petalsActive);
         const petalsContainer = document.getElementById('petals-container');
@@ -442,7 +469,8 @@ jQuery(() => {
     });
 
     // ================= ОСЕННИЕ ЛИСТЬЯ МОМИДЗИ =================
-    $('#btn-leaves').on('click', function() {
+    $('#btn-leaves').on('click', function(e, isAuto) {
+        if (!isAuto) autoActivatedEffects.delete('leaves');
         leavesActive = !leavesActive;
         $(this).toggleClass('active-weather', leavesActive);
         const leavesContainer = document.getElementById('leaves-container');
@@ -553,7 +581,8 @@ jQuery(() => {
         raysAnimationId = requestAnimationFrame(loopRays);
     }
 
-    $('#btn-rays').on('click', function() {
+    $('#btn-rays').on('click', function(e, isAuto) {
+        if (!isAuto) autoActivatedEffects.delete('rays');
         raysActive = !raysActive;
         $(this).toggleClass('active-weather', raysActive);
         if (raysActive) {
@@ -648,7 +677,8 @@ jQuery(() => {
         embersAnimationId = requestAnimationFrame(loopEmbers);
     }
 
-    $('#btn-embers').on('click', function() {
+    $('#btn-embers').on('click', function(e, isAuto) {
+        if (!isAuto) autoActivatedEffects.delete('embers');
         embersActive = !embersActive;
         $(this).toggleClass('active-weather', embersActive);
         if (embersActive) {
@@ -662,7 +692,7 @@ jQuery(() => {
         }
     });
 
-    // ================= ЭФФЕКТ СТАРОЙ ПЛЁНКИ / VHS (ОПТИМИЗИРОВАН ПОД МОБИЛКИ) =================
+    // ================= ЭФФЕКТ СТАРОЙ ПЛЁНКИ / VHS =================
     const vhsCanvas = document.getElementById('vhs-canvas');
     const vhsCtx = vhsCanvas.getContext('2d');
     let vhsAnimationId = null;
@@ -700,7 +730,6 @@ jQuery(() => {
         vhsCtx.clearRect(0, 0, w, h);
         vhsTime += 0.016;
 
-        // 1. Мягкая пульсирующая виньетка + тёплое ретро-свечение
         const pulse = Math.sin(vhsTime * 1.2) * 0.03 + Math.sin(vhsTime * 3.7) * 0.015;
         const radGrad = vhsCtx.createRadialGradient(w * 0.5, h * 0.5, h * 0.15, w * 0.5, h * 0.5, Math.max(w, h) * 0.72);
         radGrad.addColorStop(0, `rgba(255, 210, 165, ${0.04 + pulse * 0.3})`);
@@ -709,7 +738,6 @@ jQuery(() => {
         vhsCtx.fillStyle = radGrad;
         vhsCtx.fillRect(0, 0, w, h);
 
-        // 2. Медленная полупрозрачная полоса VHS-трекинга
         const trackY = ((vhsTime * 35) % (h + 260)) - 130;
         const trackGrad = vhsCtx.createLinearGradient(0, trackY - 70, 0, trackY + 70);
         trackGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
@@ -720,14 +748,12 @@ jQuery(() => {
         vhsCtx.fillStyle = trackGrad;
         vhsCtx.fillRect(0, trackY - 70, w, 140);
 
-        // 3. Редкие деликатные пылинки/царапинки старой киноплёнки
         if (Math.random() < 0.15) {
             const scratchX = Math.random() * w;
             vhsCtx.fillStyle = `rgba(255, 235, 205, ${0.04 + Math.random() * 0.05})`;
             vhsCtx.fillRect(scratchX, 0, 1, h);
         }
 
-        // 4. Сканлайны + живое зерно за 1 операцию!
         if (vhsPattern) {
             const ox = Math.floor(Math.random() * 128);
             const oy = Math.floor((vhsTime * 8) % 4) + Math.floor(Math.random() * 32) * 4;
@@ -741,7 +767,6 @@ jQuery(() => {
         vhsAnimationId = requestAnimationFrame(loopVHS);
     }
 
-    // Вот этот обработчик кнопки VHS потерялся при копировании!
     $('#btn-vhs').on('click', function() {
         vhsActive = !vhsActive;
         $(this).toggleClass('active-weather', vhsActive);
@@ -755,6 +780,127 @@ jQuery(() => {
         }
     });
 
+  // ================= 🤖 SMART AUTO-WEATHER (С АВТО-ЗАТУХАНИЕМ ПРИ СМЕНЕ СЦЕНЫ) =================
+    const weatherTriggers = [
+        {
+            id: 'rain',
+            btn: '#btn-rain',
+            isActive: () => rainActive,
+            regex: /\b(rain|raining|raindrops|downpour|drizzle|pouring|thunderstorm|stormy|дождь|дождя|дождем|ливень|ливня|морось|гроза)\b/i,
+            stopRegex: /\b(rain stopped|stops raining|went inside|stepped inside|indoors|дождь прекратился|дождь закончился|зашли внутрь|вошли в дом)\b/i
+        },
+        {
+            id: 'snow',
+            btn: '#btn-snow',
+            isActive: () => snowflakesActive,
+            regex: /\b(snow|snowing|snowflakes|blizzard|snowfall|frosty|снег|снега|снегопад|снежинки|метель|вьюга)\b/i,
+            stopRegex: /\b(snow stopped|went inside|stepped inside|indoors|снег прекратился|метель утихла|зашли внутрь)\b/i
+        },
+        {
+            id: 'fog',
+            btn: '#btn-fog',
+            isActive: () => fogActive,
+            regex: /\b(fog|foggy|mist|misty|haze|smoke|smoking|cigarette|cigar|exhales|inhales|туман|тумана|дым|дымка|сигарет[аыуой]|закурил|затянулся)\b/i,
+            stopRegex: /\b(puts out|stubs out|crushes the cigarette|flicks the cigarette|smoke clears|fog clears|потушил|затушил|выбросил окурок|дым рассеялся|туман рассеялся)\b/i
+        },
+        {
+            id: 'embers',
+            btn: '#btn-embers',
+            isActive: () => embersActive,
+            regex: /\b(embers|ash|ashes|sparks|flames|campfire|bonfire|inferno|burning|blaze|искры|пепел|пламя|костер|костра|пожар|угли)\b/i,
+            stopRegex: /\b(fire went out|extinguished|flames died|огонь погас|костер потух|потушили)\b/i
+        },
+        {
+            id: 'petals',
+            btn: '#btn-petals',
+            isActive: () => petalsActive,
+            regex: /\b(sakura|cherry blossom|cherry blossoms|pink petals|сакура|сакуры|лепестки сакуры)\b/i
+        },
+        {
+            id: 'leaves',
+            btn: '#btn-leaves',
+            isActive: () => leavesActive,
+            regex: /\b(autumn leaves|fallen leaves|falling leaves|maple leaves|momiji|осенние листья|листопад|кленовые листья|момидзи)\b/i
+        },
+        {
+            id: 'rays',
+            btn: '#btn-rays',
+            isActive: () => raysActive,
+            regex: /\b(sunbeams|sunrays|golden rays|shafts of light|morning sun|солнечные лучи|лучи солнца)\b/i
+        },
+        {
+            id: 'fireflies',
+            btn: '#btn-fireflies',
+            isActive: () => firefliesActive,
+            regex: /\b(fireflies|firefly|glowworms|светлячки|светлячок|светлячков)\b/i
+        }
+    ];
+
+    let lastProcessedSignature = '';
+
+    function checkLastMessageForWeather() {
+        if (!extensionEnabled || !autoWeatherEnabled) return;
+
+        // Берём последние 2 сообщения чата (чтобы эффект держался 2 хода, а потом сам гас, если тема сменилась!)
+        const recentMessages = $('#chat .mes').slice(-2);
+        if (!recentMessages.length) return;
+
+        const lastMesText = recentMessages.last().find('.mes_text').text().trim();
+        const combinedText = recentMessages.map((_, el) => $(el).find('.mes_text').text().trim()).get().join(' \n ');
+
+        if (!combinedText || combinedText === lastProcessedSignature) return;
+        lastProcessedSignature = combinedText;
+
+        const matchedEffects = new Set();
+
+        for (const item of weatherTriggers) {
+            // Если в самом последнем сообщении явно сказано, что действие прекратилось (например, потушил сигарету)
+            if (item.stopRegex && item.stopRegex.test(lastMesText)) {
+                continue;
+            }
+            // Иначе проверяем, упоминался ли эффект в последних 2 сообщениях
+            if (item.regex.test(combinedText)) {
+                matchedEffects.add(item.id);
+            }
+        }
+
+        // 1. Выключаем ВСЕ авто-эффекты, которые больше не упоминаются в последних 2 сообщениях!
+        for (const item of weatherTriggers) {
+            if (autoActivatedEffects.has(item.id) && !matchedEffects.has(item.id)) {
+                if (item.isActive()) {
+                    $(item.btn).trigger('click', [true]);
+                }
+                autoActivatedEffects.delete(item.id);
+            }
+        }
+
+        // 2. Включаем новые найденные эффекты
+        for (const item of weatherTriggers) {
+            if (matchedEffects.has(item.id)) {
+                if (!item.isActive()) {
+                    $(item.btn).trigger('click', [true]);
+                }
+                autoActivatedEffects.add(item.id);
+            }
+        }
+    }
+
+    // Наблюдатель за чатом
+    let chatObserverTimeout = null;
+    const chatObserver = new MutationObserver(() => {
+        if (!extensionEnabled || !autoWeatherEnabled) return;
+        clearTimeout(chatObserverTimeout);
+        chatObserverTimeout = setTimeout(checkLastMessageForWeather, 1200);
+    });
+
+    const waitForChat = setInterval(() => {
+        const chatEl = document.getElementById('chat');
+        if (chatEl) {
+            clearInterval(waitForChat);
+            chatObserver.observe(chatEl, { childList: true, subtree: true, characterData: true });
+            checkLastMessageForWeather();
+        }
+    }, 1000);
     // ================= ЗАЩИЩЕННЫЙ РЕСАЙЗ ОКНА =================
     let lastWidth = 0;
     let resizeTimeout = null;
