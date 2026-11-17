@@ -1361,4 +1361,94 @@ jQuery(() => {
 
     // ===== END SILVER FROST =====
     
+    // ===== SILVER FROST — CRYSTAL TWINKLES =====
+    // Независимые серебряные вспышки на морозных узорах.
+    // Без requestAnimationFrame, canvas-циклов и таймеров.
+
+    const frostGlints = document.createElement('div');
+    frostGlints.id = 'st-frost-glints';
+    frostGlints.className = 'st-weather-layer';
+
+    frostGlints.classList.toggle(
+        'weather-over-chat',
+        overChatMode
+    );
+
+    frostCanvas.insertAdjacentElement(
+        'afterend',
+        frostGlints
+    );
+
+    const glintCount = window.innerWidth <= 768 ? 30 : 46;
+
+    for (let i = 0; i < glintCount; i++) {
+        const sparkle = document.createElement('span');
+        sparkle.className = 'st-frost-glint';
+
+        // Распределяем искры вдоль ледяных краёв,
+        // сохраняя свободное место в центре чата.
+
+        const corner = i % 4;
+        const horizontal = Math.random() < 0.58;
+
+        const dx = horizontal
+            ? 8 + Math.random() * Math.min(145, window.innerWidth * 0.32)
+            : 4 + Math.random() * 34;
+
+        const dy = horizontal
+            ? 4 + Math.random() * Math.min(95, window.innerHeight * 0.13)
+            : 8 + Math.random() * Math.min(175, window.innerHeight * 0.20);
+
+        const x = (corner === 1 || corner === 3)
+            ? window.innerWidth - dx
+            : dx;
+
+        const y = (corner === 2 || corner === 3)
+            ? window.innerHeight - dy
+            : dy;
+
+        sparkle.style.left =
+            `${x / window.innerWidth * 100}%`;
+
+        sparkle.style.top =
+            `${y / window.innerHeight * 100}%`;
+
+        // Разные скорости, задержки и размеры.
+        // Искры вспыхивают не одновременно.
+
+        sparkle.style.setProperty(
+            '--glint-duration',
+            `${3.5 + Math.random() * 5.5}s`
+        );
+
+        sparkle.style.setProperty(
+            '--glint-delay',
+            `${-Math.random() * 12}s`
+        );
+
+        sparkle.style.setProperty(
+            '--glint-size',
+            `${1.2 + Math.random() * 1.8}px`
+        );
+
+        sparkle.style.setProperty(
+            '--glint-scale',
+            `${0.7 + Math.random() * 0.65}`
+        );
+
+        frostGlints.appendChild(sparkle);
+    }
+
+    // Синхронизация с кнопкой инея
+    // и автоматическим включением погоды.
+
+    frostButton.on('click', () => {
+        frostGlints.classList.toggle(
+            'st-frost-on',
+            frostActive
+        );
+    });
+
+    // ===== END CRYSTAL TWINKLES =====
+    
 });
