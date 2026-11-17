@@ -318,4 +318,125 @@
     }
 }
     
+/* ==========================================
+   SILVER FROST — CRYSTAL TWINKLES
+   ========================================== */
+
+/* Сохраняем постоянную видимость ледяного рисунка */
+#frost-canvas.st-frost-on {
+    animation: none !important;
+    opacity: 0.95 !important;
+}
+
+/* Прозрачный слой мерцания */
+#st-frost-glints {
+    visibility: hidden !important;
+    opacity: 0;
+    pointer-events: none !important;
+    transition: opacity 0.7s ease;
+}
+
+#st-frost-glints.st-frost-on {
+    visibility: visible !important;
+    opacity: 1;
+}
+
+/* Отдельный ледяной кристалл */
+#st-frost-glints .st-frost-glint {
+    position: absolute;
+    display: block;
+    width: var(--glint-size);
+    height: var(--glint-size);
+    border-radius: 50%;
+    background: #faffff;
+
+    box-shadow:
+        0 0 4px 1px rgba(255,255,255,0.95),
+        0 0 9px 3px rgba(185,225,255,0.55),
+        0 0 18px 5px rgba(170,215,255,0.18);
+
+    opacity: 0;
+
+    animation:
+        st-frost-crystal-twinkle
+        var(--glint-duration)
+        ease-in-out
+        var(--glint-delay)
+        infinite;
+}
+
+/* Горизонтальный луч */
+#st-frost-glints .st-frost-glint::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 14px;
+    height: 1px;
+
+    transform: translate(-50%, -50%);
+
+    background: linear-gradient(
+        to right,
+        transparent,
+        rgba(235,250,255,0.95),
+        transparent
+    );
+}
+
+/* Вертикальный луч */
+#st-frost-glints .st-frost-glint::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1px;
+    height: 14px;
+
+    transform: translate(-50%, -50%);
+
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(235,250,255,0.95),
+        transparent
+    );
+}
+
+/* Асинхронные вспышки */
+@keyframes st-frost-crystal-twinkle {
+    0%, 15%, 65%, 100% {
+        opacity: 0;
+        transform: scale(0.45);
+    }
+
+    22% {
+        opacity: 0.35;
+        transform: scale(0.7);
+    }
+
+    30% {
+        opacity: 1;
+        transform: scale(var(--glint-scale));
+    }
+
+    37% {
+        opacity: 0.8;
+        transform: scale(1.1);
+    }
+
+    48% {
+        opacity: 0;
+        transform: scale(0.55);
+    }
+}
+
+/* Уважение к системной настройке анимаций */
+@media (prefers-reduced-motion: reduce) {
+    #st-frost-glints .st-frost-glint {
+        animation: none !important;
+        opacity: 0.22;
+    }
+}
+    
 }
