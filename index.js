@@ -958,4 +958,407 @@ jQuery(() => {
 
     updateCanvasSizes();
     createRays();
+
+
+    
+    // ===== SILVER FROST / ИНЕЙ =====
+    // Подключаемся к существующим кнопкам, слоям
+    // и Smart Auto-Weather.
+
+    const frostButton = $('<button>', {
+        id: 'btn-frost',
+        class: 'toggleWeather',
+        title: 'Иней — морозные узоры на стекле',
+        text: '🧊',
+        type: 'button'
+    }).insertAfter('#btn-snow');
+
+    const frostCanvas = document.createElement('canvas');
+    frostCanvas.id = 'frost-canvas';
+    frostCanvas.className = 'st-weather-layer';
+    frostCanvas.classList.toggle(
+        'weather-over-chat',
+        overChatMode
+    );
+
+    document.getElementById('snow-container')
+        .after(frostCanvas);
+
+    const frostContext = frostCanvas.getContext(
+        '2d',
+        { alpha: true }
+    );
+
+    let frostActive = false;
+    let frostResizeTimer = null;
+
+    function createFrostRandom(seed) {
+        return () => {
+            seed |= 0;
+            seed = (seed + 0x6D2B79F5) | 0;
+
+            let t = Math.imul(
+                seed ^ (seed >>> 15),
+                1 | seed
+            );
+
+            t ^= t + Math.imul(
+                t ^ (t >>> 7),
+                61 | t
+            );
+
+            return ((t ^ (t >>> 14)) >>> 0)
+                / 4294967296;
+        };
+    }
+
+    function drawSilverFrost() {
+        if (!frostContext || !frostActive) return;
+
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
+        const scale = Math.min(
+            window.devicePixelRatio || 1,
+            w <= 768 ? 1.25 : 1.5
+        );
+
+        frostCanvas.width = Math.round(w * scale);
+        frostCanvas.height = Math.round(h * scale);
+
+        frostContext.setTransform(
+            scale, 0, 0, scale, 0, 0
+        );
+
+        frostContext.clearRect(0, 0, w, h);
+
+        // Серебристая морозная дымка по краям.
+
+        function haze(
+            x0, y0, x1, y1, color, box
+        ) {
+            const gradient =
+                frostContext.createLinearGradient(
+                    x0, y0, x1, y1
+                );
+
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(
+                1,
+                'rgba(210,240,255,0)'
+            );
+
+            frostContext.fillStyle = gradient;
+            frostContext.fillRect(...box);
+        }
+
+        const side = Math.min(90, w * 0.19);
+        const top = Math.min(78, h * 0.09);
+
+        haze(
+            0, 0, side, 0,
+            'rgba(198,232,255,0.16)',
+            [0, 0, side, h]
+        );
+
+        haze(
+            w, 0, w - side, 0,
+            'rgba(198,232,255,0.16)',
+            [w - side, 0, side, h]
+        );
+
+        haze(
+            0, 0, 0, top,
+            'rgba(220,242,255,0.18)',
+            [0, 0, w, top]
+        );
+
+        haze(
+            0, h, 0, h - top,
+            'rgba(207,232,255,0.12)',
+            [0, h - top, w, top]
+        );
+
+        const random = createFrostRandom(0xF8057);
+
+        function line(
+            x1, y1, x2, y2,
+            alpha,
+            thickness = 0.6
+        ) {
+            frostContext.strokeStyle =
+                `rgba(235,249,255,${alpha})`;
+
+            frostContext.lineWidth = thickness;
+            frostContext.lineCap = 'round';
+
+            frostContext.beginPath();
+            frostContext.moveTo(x1, y1);
+            frostContext.lineTo(x2, y2);
+            frostContext.stroke();
+        }
+
+        // Ветвящиеся папоротниковые кристаллы.
+
+        function crystal(x, y, angle, length) {
+            const steps = 11 + Math.floor(
+                random() * 6
+            );
+
+            for (let i = 0; i < steps; i++) {
+                const progress = i / steps;
+
+                const a = angle
+                    + Math.sin(progress * Math.PI)
+                    * (random() - 0.5)
+                    * 0.11;
+
+                const nx = x
+                    + Math.cos(a) * length / steps;
+
+                const ny = y
+                    + Math.sin(a) * length / steps;
+
+                line(
+                    x, y, nx, ny,
+                    0.23 + (1 - progress) * 0.28,
+                    0.85 - progress * 0.35
+                );
+
+                for (const sign of [-1, 1]) {
+                    if (random() < 0.12) continue;
+
+                    const branchAngle = a
+                        + sign * (
+                            0.72 + random() * 0.29
+                        );
+
+                    const branchLength = (
+                        7 + random() * 15
+                    ) * (1 - progress * 0.72);
+
+                    const bx = nx
+                        + Math.cos(branchAngle)
+                        * branchLength;
+
+                    const by = ny
+                        + Math.sin(branchAngle)
+                        * branchLength;
+
+                    line(
+                        nx, ny, bx, by,
+                        0.22 + (1 - progress) * 0.24,
+                        0.55
+                    );
+
+                    const subLength =
+                        branchLength * (
+                            0.24 + random() * 0.22
+                        );
+
+                    const midx =
+                        nx + (bx - nx) * 0.62;
+
+                    const midy =
+                        ny + (by - ny) * 0.62;
+
+                    line(
+                        midx,
+                        midy,
+                        midx + Math.cos(
+                            branchAngle + sign * 0.63
+                        ) * subLength,
+                        midy + Math.sin(
+                            branchAngle + sign * 0.63
+                        ) * subLength,
+                        0.2,
+                        0.4
+                    );
+                }
+
+                x = nx;
+                y = ny;
+            }
+        }
+
+        // Четыре угла экрана.
+        // Центральная область остаётся чистой.
+
+        for (const [tx, ty, sx, sy] of [
+            [0, 0, 1, 1],
+            [w, 0, -1, 1],
+            [0, h, 1, -1],
+            [w, h, -1, -1]
+        ]) {
+            frostContext.save();
+            frostContext.translate(tx, ty);
+            frostContext.scale(sx, sy);
+
+            const reachX = Math.min(
+                w * 0.43, 170
+            );
+
+            const reachY = Math.min(
+                h * 0.21, 200
+            );
+
+            for (let i = 0; i < 17; i++) {
+                const horizontal = i < 10;
+
+                const x = horizontal
+                    ? random() * reachX * 0.86
+                    : random() * 11;
+
+                const y = horizontal
+                    ? random() * 10
+                    : random() * reachY;
+
+                const angle = horizontal
+                    ? 0.66 + random() * 0.95
+                    : 0.05 + random() * 0.72;
+
+                const maxLength = horizontal
+                    ? Math.min(w * 0.24, 104)
+                    : Math.min(w * 0.21, 90);
+
+                crystal(
+                    x,
+                    y,
+                    angle,
+                    (24 + random() * maxLength)
+                        * (i < 7 ? 1 : 0.72)
+                );
+            }
+
+            frostContext.restore();
+        }
+
+        // Мелкие ледяные искры у кромок.
+
+        for (let i = 0; i < 75; i++) {
+            const edge = i % 4;
+
+            const x = edge === 0
+                ? random() * 31
+                : edge === 1
+                    ? w - random() * 31
+                    : random() * w;
+
+            const y = edge === 2
+                ? random() * 26
+                : edge === 3
+                    ? h - random() * 23
+                    : random() * h;
+
+            const size =
+                1.3 + random() * 3.4;
+
+            const alpha =
+                0.18 + random() * 0.3;
+
+            line(
+                x - size, y,
+                x + size, y,
+                alpha, 0.45
+            );
+
+            line(
+                x, y - size * 1.45,
+                x, y + size * 1.45,
+                alpha, 0.45
+            );
+        }
+    }
+
+    // Кнопка включения и выключения инея.
+
+    frostButton.on(
+        'click',
+        function(event, isAuto) {
+            if (!isAuto) {
+                autoActivatedEffects.delete('frost');
+            }
+
+            frostActive = !frostActive;
+
+            $(this).toggleClass(
+                'active-weather',
+                frostActive
+            );
+
+            frostCanvas.classList.toggle(
+                'st-frost-on',
+                frostActive
+            );
+
+            if (frostActive) {
+                drawSilverFrost();
+            }
+        }
+    );
+
+    // Подключение к Smart Auto-Weather.
+
+    const snowTrigger = weatherTriggers.find(
+        item => item.id === 'snow'
+    );
+
+    if (snowTrigger) {
+        snowTrigger.regex = new RegExp(
+            snowTrigger.regex.source.replace(
+                '|frosty', ''
+            ),
+            snowTrigger.regex.flags
+        );
+    }
+
+    weatherTriggers.push({
+        id: 'frost',
+        btn: '#btn-frost',
+
+        isActive: () => frostActive,
+
+        regex: makeWeatherRegex(
+            'frost|frosty|frosted|hoarfrost|' +
+            'rime|ice crystals|frost patterns|' +
+            'иней|инея|инеем|инее|' +
+            'изморозь|изморози|изморозью|' +
+            'морозные узоры|ледяные узоры'
+        ),
+
+        stopRegex: makeWeatherRegex(
+            'frost melted|frost cleared|' +
+            'frost vanished|иней растаял|' +
+            'иней исчез|изморозь исчезла|' +
+            'морозные узоры растаяли'
+        )
+    });
+
+    // Отключение вместе со всем расширением.
+
+    $('#st-weather-enabled-checkbox').on(
+        'change',
+        () => {
+            if (!extensionEnabled && frostActive) {
+                frostButton.trigger('click', [true]);
+            }
+        }
+    );
+
+    // Перерисовка при изменении размера экрана.
+    // Никакого постоянного canvas-цикла.
+
+    window.addEventListener('resize', () => {
+        if (!frostActive) return;
+
+        clearTimeout(frostResizeTimer);
+
+        frostResizeTimer = setTimeout(
+            drawSilverFrost,
+            300
+        );
+    });
+
+    // ===== END SILVER FROST =====
+    
 });
