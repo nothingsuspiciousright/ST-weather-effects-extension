@@ -275,4 +275,47 @@
         height: 1px;
         margin: 2px 0;
     }
+
+    
+/* ========================================
+   SILVER FROST — ИНЕЙ НА СТЕКЛЕ
+   ======================================== */
+
+#frost-canvas.st-weather-layer {
+    visibility: visible !important;
+    opacity: 0;
+    pointer-events: none !important;
+
+    transition: opacity 1.8s ease;
+}
+
+/* Иней включён */
+#frost-canvas.st-frost-on {
+    opacity: 0.95;
+
+    animation:
+        st-silver-frost-glow
+        17s ease-in-out
+        infinite alternate;
+}
+
+/* Нежное серебряное мерцание */
+@keyframes st-silver-frost-glow {
+    from {
+        opacity: 0.82;
+    }
+
+    to {
+        opacity: 0.98;
+    }
+}
+
+/* Настройки уменьшения анимаций */
+@media (prefers-reduced-motion: reduce) {
+    #frost-canvas.st-weather-layer {
+        transition: none;
+        animation: none;
+    }
+}
+    
 }
