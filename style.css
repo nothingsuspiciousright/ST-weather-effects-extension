@@ -437,6 +437,158 @@
         animation: none !important;
         opacity: 0.22;
     }
+    
+/* ===== SILVER STARFALL ===== */
+
+#st-weather-starfall.st-weather-layer {
+    visibility: hidden;
+    pointer-events: none !important;
+    overflow: hidden;
+    contain: layout paint style;
+}
+
+#st-weather-starfall.st-starfall-active {
+    visibility: visible;
+}
+
+/* Падающая частица */
+#st-weather-starfall .st-starfall-particle {
+    position: absolute;
+    display: block;
+
+    left: var(--star-x);
+    top: -7vh;
+
+    width: var(--star-size);
+    height: var(--star-size);
+
+    opacity: 0;
+    pointer-events: none;
+    will-change: transform;
+
+    animation:
+        st-starfall-descend
+        var(--star-duration)
+        linear
+        var(--star-delay)
+        infinite;
+}
+
+/* Светящаяся серебряная звёздочка */
+#st-weather-starfall .st-starfall-particle::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+
+    background: radial-gradient(
+        circle,
+        #ffffff 0%,
+        #e4f2ff 33%,
+        rgba(185,216,247,0) 76%
+    );
+
+    box-shadow:
+        0 0 6px 1px rgba(234,244,255,0.55);
+
+    animation:
+        st-starfall-twinkle
+        var(--star-twinkle)
+        ease-in-out
+        infinite alternate;
+}
+
+/* Тонкий серебряный шлейф */
+#st-weather-starfall .st-starfall-particle::after {
+    content: '';
+    position: absolute;
+
+    left: 50%;
+    bottom: 55%;
+
+    width: 1px;
+    height: var(--star-trail);
+
+    transform-origin: bottom center;
+    transform: translateX(-50%) rotate(-14deg);
+
+    background: linear-gradient(
+        to top,
+        rgba(230,244,255,0.72),
+        rgba(199,226,255,0.22) 55%,
+        transparent
+    );
+
+    filter: drop-shadow(
+        0 0 2px rgba(220,239,255,0.28)
+    );
+}
+
+/* Плавное падение и исчезновение */
+@keyframes st-starfall-descend {
+    0% {
+        transform: translate3d(0, 0, 0);
+        opacity: 0;
+    }
+
+    9% {
+        opacity: var(--star-alpha);
+    }
+
+    82% {
+        opacity: var(--star-alpha);
+    }
+
+    100% {
+        transform: translate3d(
+            var(--star-drift), 115vh, 0
+        );
+        opacity: 0;
+    }
+}
+
+/* Нежное мерцание */
+@keyframes st-starfall-twinkle {
+    from {
+        opacity: 0.52;
+        transform: scale(0.72);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1.32);
+    }
+}
+
+/* Статичное звёздное небо при Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    #st-weather-starfall.st-starfall-active {
+        background-image:
+            radial-gradient(circle at 15% 18%,
+                rgba(245,250,255,0.6) 1px, transparent 2px),
+            radial-gradient(circle at 71% 43%,
+                rgba(225,240,255,0.45) 1px, transparent 2px),
+            radial-gradient(circle at 42% 78%,
+                rgba(245,250,255,0.45) 1px, transparent 2px);
+
+        background-size:
+            193px 211px,
+            251px 279px,
+            317px 233px;
+    }
+
+    #st-weather-starfall .st-starfall-particle {
+        animation: none !important;
+        opacity: 0 !important;
+    }
+
+    #st-weather-starfall .st-starfall-particle::before {
+        animation: none !important;
+    }
+}
+
+/* ===== END SILVER STARFALL ===== */
+
 }
     
 }
