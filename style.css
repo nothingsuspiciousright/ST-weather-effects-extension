@@ -275,8 +275,8 @@
         height: 1px;
         margin: 2px 0;
     }
+}
 
-    
 /* ========================================
    SILVER FROST — ИНЕЙ НА СТЕКЛЕ
    ======================================== */
@@ -437,7 +437,8 @@
         animation: none !important;
         opacity: 0.22;
     }
-    
+}
+
 /* ===== SILVER STARFALL ===== */
 
 #st-weather-starfall.st-weather-layer {
@@ -585,10 +586,6 @@
     #st-weather-starfall .st-starfall-particle::before {
         animation: none !important;
     }
-
+}
 
 /* ===== END SILVER STARFALL ===== */
-
-}
-    
-}
