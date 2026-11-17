@@ -1451,4 +1451,119 @@ jQuery(() => {
 
     // ===== END CRYSTAL TWINKLES =====
     
+    // ===== SILVER STARFALL / СЕРЕБРЯНЫЙ ЗВЕЗДОПАД =====
+
+    const starfallButton = $('<button>', {
+        id: 'btn-starfall',
+        class: 'toggleWeather',
+        title: 'Серебряный звездопад',
+        text: '🌠',
+        type: 'button'
+    }).insertAfter('#btn-rays');
+
+    const starfallLayer = document.createElement('div');
+    starfallLayer.id = 'st-weather-starfall';
+    starfallLayer.className = 'st-weather-layer';
+    starfallLayer.classList.toggle(
+        'weather-over-chat', overChatMode
+    );
+    starfallLayer.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(starfallLayer);
+
+    let starfallActive = false;
+
+    function setStarfall(active, isAuto = false) {
+        if (!isAuto) autoActivatedEffects.delete('starfall');
+        if (active === starfallActive) return;
+
+        starfallActive = active;
+        starfallButton.toggleClass('active-weather', active);
+        starfallLayer.classList.toggle('st-starfall-active', active);
+
+        // Выключение полностью удаляет частицы.
+        if (!active) {
+            starfallLayer.replaceChildren();
+            return;
+        }
+
+        const count = window.innerWidth <= 768 ? 16 : 28;
+        const fragment = document.createDocumentFragment();
+
+        for (let i = 0; i < count; i++) {
+            const star = document.createElement('span');
+            star.className = 'st-starfall-particle';
+
+            const duration = 6.5 + Math.random() * 6;
+
+            star.style.setProperty(
+                '--star-x',
+                `${(3 + Math.random() * 94).toFixed(1)}%`
+            );
+            star.style.setProperty(
+                '--star-drift',
+                `${(-55 + Math.random() * 110).toFixed(1)}px`
+            );
+            star.style.setProperty(
+                '--star-size',
+                `${(1.5 + Math.random() * 2.2).toFixed(1)}px`
+            );
+            star.style.setProperty(
+                '--star-trail',
+                `${(18 + Math.random() * 34).toFixed(1)}px`
+            );
+            star.style.setProperty(
+                '--star-alpha',
+                `${(0.38 + Math.random() * 0.58).toFixed(2)}`
+            );
+            star.style.setProperty(
+                '--star-duration',
+                `${duration.toFixed(2)}s`
+            );
+            star.style.setProperty(
+                '--star-delay',
+                `${(-Math.random() * duration).toFixed(2)}s`
+            );
+            star.style.setProperty(
+                '--star-twinkle',
+                `${(1.7 + Math.random() * 2.8).toFixed(2)}s`
+            );
+
+            fragment.appendChild(star);
+        }
+
+        starfallLayer.appendChild(fragment);
+    }
+
+    // Ручное включение и выключение.
+    starfallButton.on('click', (_event, isAuto) => {
+        if (!extensionEnabled && !starfallActive) return;
+        setStarfall(!starfallActive, Boolean(isAuto));
+    });
+
+    // Выключение вместе с расширением.
+    $('#st-weather-enabled-checkbox').on('change', () => {
+        if (!extensionEnabled) setStarfall(false, true);
+    });
+
+    // Интеграция со Smart Auto-Weather.
+    weatherTriggers.push({
+        id: 'starfall',
+        btn: '#btn-starfall',
+        isActive: () => starfallActive,
+
+        regex: makeWeatherRegex(
+            'shooting stars?|falling stars?|meteor showers?|starfall|' +
+            'зв[её]здопад[а-яё]*|падающие зв[её]зды|' +
+            'падающих зв[её]зд|метеорный поток'
+        ),
+
+        stopRegex: makeWeatherRegex(
+            'meteor shower ended|starfall stopped|' +
+            'зв[её]здопад закончился|' +
+            'зв[её]здопад прекратился'
+        )
+    });
+
+    // ===== END SILVER STARFALL =====
+
 });
